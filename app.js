@@ -356,6 +356,10 @@ function loadLensStateFromStorage() {
     if (a) activeLensId = a;
     const c = localStorage.getItem('lensCustom');
     if (c) customLens = { ...customLens, ...JSON.parse(c) };
+    const p = localStorage.getItem('lensPrompt');
+    if (p) {
+      try { promptLens = JSON.parse(p); } catch (_) { promptLens = null; }
+    }
   } catch (e) { console.warn('Failed to load lenses state:', e); }
 }
 
@@ -791,6 +795,8 @@ function updateGoalsCalculation() {
   if (lensCancel) lensCancel.addEventListener('click', closeModals);
   const lensClose = document.getElementById('lenses-close');
   if (lensClose) lensClose.addEventListener('click', closeModals);
+  const lensSavePrompt = document.getElementById('lenses-save-prompt');
+  if (lensSavePrompt) lensSavePrompt.addEventListener('click', savePromptLens);
 }
 
 function saveGoals() {
@@ -832,6 +838,10 @@ function renderGoalsSection() {
   if (progressBar) {
     progressBar.style.width = `${progressPercent}%`;
   }
+
+  // Update dashboard pacing-now card if present
+  const pacingEl = document.getElementById('pacing-now');
+  if (pacingEl) pacingEl.textContent = String(Math.max(recommendedThisWeek, 0));
 }
 
 // Master Activity Log with Gamification
@@ -1875,6 +1885,7 @@ function applyAllFilters() {
 function getActiveLens() {
   if (activeLensId === 'custom') return customLens;
   if (activeLensId === 'pacing') return buildPacingLens();
+  if (activeLensId === 'prompt') return promptLens;
   if (activeLensId === 'none') return null;
   return lensPresets.find(l => l.id === activeLensId) || null;
 }
@@ -1963,6 +1974,9 @@ function openLensesModal() {
   radios.forEach(r => r.addEventListener('change', () => {
     if (customWrap) customWrap.style.display = r.value === 'custom' ? 'block' : 'none';
   }));
+  // show Prompt lens option if saved
+  const promptCard = document.getElementById('lens-prompt-card');
+  if (promptCard) promptCard.style.display = promptLens ? 'block' : 'none';
   modal.classList.remove('hidden');
 }
 
@@ -1992,12 +2006,29 @@ function updateLensIndicator() {
   if (lens) {
     const count = (lens.include?.length || 0) + (lens.exclude?.length || 0);
     if (count > 0) {
-      badge.textContent = lens.name ? lens.name.split(':')[0] : count;
+      badge.textContent = lens.name ? lens.name.split(':')[0] : String(count);
       badge.classList.remove('hidden');
       return;
     }
   }
   badge.classList.add('hidden');
+}
+
+function savePromptLens() {
+  try {
+    const cfg = JSON.parse(document.getElementById('lens-custom-json').value || '{}');
+    if (!cfg || (!cfg.include && !cfg.exclude)) throw new Error('Empty lens');
+    promptLens = { id: 'prompt', name: cfg.name || 'Prompt', mode: cfg.mode || 'filter', include: cfg.include || [], exclude: cfg.exclude || [] };
+    localStorage.setItem('lensPrompt', JSON.stringify(promptLens));
+    activeLensId = 'prompt';
+    localStorage.setItem('lensActive', activeLensId);
+    updateLensIndicator();
+    applyAllFilters();
+    closeModals();
+    showToast('Saved prompt lens and applied', 'success');
+  } catch (e) {
+    showToast('Invalid custom JSON for prompt lens', 'error');
+  }
 }
 
 function clearFilters() {

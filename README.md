@@ -68,6 +68,11 @@ Notes:
 - Live (branch-based) URL: https://flashesofbrilliance.github.io/job-search-optimizer-v2/
 - GitHub Actions workflow: `.github/workflows/deploy.yml` (builds `dist/` and deploys via actions/deploy-pages)
 
+### Live Demo
+
+[![GitHub Pages](https://img.shields.io/badge/Live-Demo-2ea44f?logo=github&logoColor=white)](https://flashesofbrilliance.github.io/job-search-optimizer-v2/)
+[Open the app](https://flashesofbrilliance.github.io/job-search-optimizer-v2/) and try Lenses (Pattern, Pacing, Bias, Platform) and the new Pacing Now dashboard card.
+
 ## Validated Learning Prompt
 
 An open-source prompt template for iterative strategy and pacing lives at `prompts/validated-learning.md`. Use it with CSV exports to learn segment performance and compute the weekly applications needed to reach, for example, 5 offers in 6 weeks.

@@ -98,6 +98,16 @@
                             <div class="card-change positive">Fresh opportunities</div>
                         </div>
                     </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon primary">
+                            <i class="fas fa-stopwatch"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Pacing Now</h3>
+                            <div class="card-value" id="pacing-now">0</div>
+                            <div class="card-change neutral">Recommended this week</div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -568,6 +578,14 @@
                                 <small>JSON builder</small>
                             </span>
                         </label>
+                        <label class="radio-card" id="lens-prompt-card" style="display:none;">
+                            <input type="radio" name="lens" value="prompt" />
+                            <span class="radio-visual">
+                                <i class="fas fa-lightbulb"></i>
+                                <strong>Prompt</strong>
+                                <small>Saved from prompt</small>
+                            </span>
+                        </label>
                         <label class="radio-card">
                             <input type="radio" name="lens" value="none" />
                             <span class="radio-visual">
@@ -589,6 +607,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button class="btn btn--outline" id="lenses-save-prompt" title="Save Custom as Prompt">Save as Prompt</button>
                     <button class="btn btn--outline" id="lenses-cancel">Cancel</button>
                     <button class="btn btn--primary" id="lenses-apply">Apply</button>
                 </div>
