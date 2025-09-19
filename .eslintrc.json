@@ -17,6 +17,7 @@
   "globals": {
     "Chart": "readonly",
     "JSZip": "readonly",
-    "Ajv": "readonly"
+    "Ajv": "readonly",
+    "confetti": "readonly"
   }
 }

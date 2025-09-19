@@ -3125,7 +3125,7 @@ function renderMilestonesDashboard() {
 }
 
 function badge(label, value, cls, title) {
-  return `<span class="badge-pill ${cls}" title="${title}"><i class=\"fas fa-star\"></i> ${label}: ${value}</span>`;
+  return `<span class="badge-pill ${cls}" title="${title}"><i class="fas fa-star"></i> ${label}: ${value}</span>`;
 }
 
 function renderPacePanel() {
