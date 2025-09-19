@@ -15,6 +15,7 @@
     "no-var": "error"
   },
   "globals": {
-    "Chart": "readonly"
+    "Chart": "readonly",
+    "JSZip": "readonly"
   }
 }
