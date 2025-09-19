@@ -419,7 +419,7 @@ function updateKanbanSortUI() {
 }
 
 function saveKanbanSortToStorage() {
-  try { localStorage.setItem('kanbanSort', JSON.stringify(kanbanSort)); } catch (_) {}
+  try { localStorage.setItem('kanbanSort', JSON.stringify(kanbanSort)); } catch (e) { console.warn('kanbanSort save failed'); }
 }
 
 function loadKanbanSortFromStorage() {
@@ -429,7 +429,7 @@ function loadKanbanSortFromStorage() {
       const parsed = JSON.parse(s);
       if (parsed && parsed.key && parsed.dir) kanbanSort = parsed;
     }
-  } catch (_) {}
+  } catch (e) { console.warn('kanbanSort load failed'); }
 }
 
 function bindHeaderActions() {
