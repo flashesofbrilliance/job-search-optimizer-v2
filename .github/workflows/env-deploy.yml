@@ -63,6 +63,7 @@ jobs:
           publish_dir: dist
           publish_branch: gh-pages
           destination_dir: ${{ steps.env.outputs.path }}
+          enable_jekyll: false
       - name: Update env latest pointer
         if: steps.env.outputs.skip != 'true'
         run: |
