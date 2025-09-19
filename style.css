@@ -1146,6 +1146,19 @@ select.form-control {
   max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
+/* Milestones & Pace */
+.milestones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.badge-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; border:1px solid var(--color-card-border); background:#fff; font-size:12px; }
+.badge-pill.success { border-color: rgba(var(--color-success-rgb),0.4); color: var(--color-success); }
+.badge-pill.info { border-color: rgba(var(--color-info-rgb),0.4); color: var(--color-text-secondary); }
+.pace-panel { margin-top: 8px; border:1px solid var(--color-card-border-inner); border-radius: var(--radius-lg); padding: 10px; background:#fff; }
+.pace-row { display:grid; grid-template-columns: 1fr auto; align-items:center; gap: 8px; margin: 6px 0; }
+.pace-label { font-size: 12px; color: var(--color-text-secondary); }
+.pace-bar { grid-column: 1 / span 1; height: 8px; background: #f3f3f3; border-radius: 999px; overflow: hidden; }
+.pace-fill { height: 100%; background: var(--color-primary); width: 0; transition: width 250ms var(--ease-standard); }
+.pace-meta { font-size: 12px; color: var(--color-text-secondary); }
+.coaching-banner { margin-top: 10px; padding: 10px; border-left: 4px solid var(--color-primary); background: var(--color-bg-1); border-radius: var(--radius-base); color: var(--color-text); }
+
 /* Lenses UI: Snellen header + cards */
 .snellen { display: flex; gap: 12px; align-items: baseline; }
 .snellen-line { font-weight: 800; letter-spacing: 1px; line-height: 1; }

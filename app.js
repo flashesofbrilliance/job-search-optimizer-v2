@@ -235,7 +235,8 @@ let currentFilters = {
   status: [],
   fitScore: 0,
   vibe: [],
-  search: ''
+  search: '',
+  needsReview: false
 };
 const sortConfig = { key: null, direction: 'asc' };
 const charts = {};
@@ -624,6 +625,18 @@ function bindSearchAndFilters() {
     filterBtn.addEventListener('click', (e) => {
       e.preventDefault();
       toggleFilters();
+    });
+  }
+  // Needs Review toggle
+  const needsBtn = document.getElementById('needs-review-btn');
+  if (needsBtn) {
+    needsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      currentFilters.needsReview = !currentFilters.needsReview;
+      needsBtn.classList.toggle('active', currentFilters.needsReview);
+      applyAllFilters();
+      updateFilterIndicator();
+      saveDataToStorage();
     });
   }
   
@@ -1433,6 +1446,9 @@ function handleDiscoverLabel(label, job, idx, novel) {
     if (discoverAutoAccept && (parseFloat(job.fitScore)||0) >= discoverFitMin) {
       discoverStreak += 1;
       showToast('Added to backlog ✓', 'success');
+      if (typeof confetti === 'function' && (discoverStreak % 5 === 0)) {
+        confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+      }
     } else {
       job.needsReview = true;
       discoverStreak = 0;
@@ -2388,6 +2404,9 @@ function applyAllFilters() {
     if (job.fitScore < currentFilters.fitScore) {
       return false;
     }
+    if (currentFilters.needsReview && !job.needsReview) {
+      return false;
+    }
     
     return true;
   });
@@ -3051,6 +3070,9 @@ function renderDashboard() {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
   });
+  renderMilestonesDashboard();
+  renderPacePanel();
+  renderCoachingBanner();
 }
 
 function calculateDashboardStats() {
@@ -3085,6 +3107,72 @@ function getFitScoreClass(score) {
   if (score >= 8.0) return 'good';  
   if (score >= 7.0) return 'fair';
   return 'poor';
+}
+
+function renderMilestonesDashboard() {
+  const el = document.getElementById('milestones'); if (!el) return;
+  const feedback = JSON.parse(localStorage.getItem('discoveryFeedback') || '[]');
+  const yesCount = feedback.filter(e => e?.data?.label === 1).length;
+  const noCount = feedback.filter(e => e?.data?.label === 0).length;
+  const autoAdds = jobsData.filter(j => !j.needsReview && j.status === 'not-started').length;
+  const streak = discoverStreak || 0;
+  el.innerHTML = [
+    badge('Auto-adds', autoAdds, 'success', 'Roles accepted directly into backlog'),
+    badge('Yes', yesCount, 'success', 'Yes labels in Discover'),
+    badge('No', noCount, 'info', 'No labels in Discover'),
+    badge('Streak', streak, streak >= 5 ? 'success' : 'info', 'Current Yes streak')
+  ].join('');
+}
+
+function badge(label, value, cls, title) {
+  return `<span class="badge-pill ${cls}" title="${title}"><i class=\"fas fa-star\"></i> ${label}: ${value}</span>`;
+}
+
+function renderPacePanel() {
+  const appsFill = document.getElementById('pace-apps-fill');
+  const appsMeta = document.getElementById('pace-apps-meta');
+  const discFill = document.getElementById('pace-discover-fill');
+  const discMeta = document.getElementById('pace-discover-meta');
+  if (!appsFill || !appsMeta || !discFill || !discMeta) return;
+  // Weekly applications target
+  const targetOffers = goals.targetOffers; const weeks = goals.timelineWeeks;
+  const appsNeeded = Math.ceil(targetOffers / ((goals.interviewRate/100) * (goals.offerRate/100)));
+  const weeklyTarget = Math.ceil(appsNeeded / weeks);
+  const appliedThisWeek = countAppliedThisWeek();
+  const pctApps = Math.min(100, Math.round((appliedThisWeek / Math.max(1, weeklyTarget)) * 100));
+  appsFill.style.width = pctApps + '%'; appsMeta.textContent = `${appliedThisWeek}/${weeklyTarget}`;
+  // Discover labels this week
+  const labelsThisWeek = countFeedbackThisWeek();
+  const discTarget = weeklyTarget * 2; // heuristic: label twice the weekly app target
+  const pctDisc = Math.min(100, Math.round((labelsThisWeek / Math.max(1, discTarget)) * 100));
+  discFill.style.width = pctDisc + '%'; discMeta.textContent = `${labelsThisWeek}/${discTarget}`;
+}
+
+function countAppliedThisWeek() {
+  const oneWeek = 7 * 24 * 60 * 60 * 1000; const now = Date.now();
+  return jobsData.filter(j => j.appliedDate && (now - Date.parse(j.appliedDate)) <= oneWeek).length;
+}
+function countFeedbackThisWeek() {
+  const events = JSON.parse(localStorage.getItem('discoveryFeedback') || '[]');
+  const oneWeek = 7 * 24 * 60 * 60 * 1000; const now = Date.now();
+  return events.filter(e => e?.time && (now - Date.parse(e.time)) <= oneWeek).length;
+}
+
+function renderCoachingBanner() {
+  const el = document.getElementById('coaching-banner'); if (!el) return;
+  const applied = countAppliedThisWeek(); const labels = countFeedbackThisWeek();
+  const targetOffers = goals.targetOffers; const weeks = goals.timelineWeeks;
+  const appsNeeded = Math.ceil(targetOffers / ((goals.interviewRate/100) * (goals.offerRate/100)));
+  const weeklyTarget = Math.ceil(appsNeeded / weeks);
+  let msg = '';
+  if (applied >= weeklyTarget) {
+    msg = `Great pace! You hit ${applied}/${weeklyTarget} applications this week. Consider tightening your lens to exploit winning segments.`;
+  } else if (labels < weeklyTarget) {
+    msg = `Quick win: label ${weeklyTarget - labels} more roles in Discover to feed your backlog.`;
+  } else {
+    msg = `You're close! ${weeklyTarget - applied} more applications will keep you on track.`;
+  }
+  el.textContent = msg; el.style.display = 'block';
 }
 
 function formatDate(dateString) {

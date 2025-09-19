@@ -116,6 +116,22 @@
                         </div>
                     </div>
                 </div>
+                <div class="milestones" id="milestones">
+                    <!-- Milestone badges injected here -->
+                </div>
+                <div class="pace-panel" id="pace-panel">
+                    <div class="pace-row">
+                        <div class="pace-label">Applications this week</div>
+                        <div class="pace-bar"><div class="pace-fill" id="pace-apps-fill" style="width:0%"></div></div>
+                        <div class="pace-meta" id="pace-apps-meta">0/0</div>
+                    </div>
+                    <div class="pace-row">
+                        <div class="pace-label">Discover labels this week</div>
+                        <div class="pace-bar"><div class="pace-fill" id="pace-discover-fill" style="width:0%"></div></div>
+                        <div class="pace-meta" id="pace-discover-meta">0</div>
+                    </div>
+                </div>
+                <div class="coaching-banner" id="coaching-banner" style="display:none;"></div>
             </section>
 
             <!-- Goals Progress Bar -->
@@ -210,6 +226,9 @@
                             <span class="filter-count hidden" id="lens-indicator">0</span>
                         </button>
                         <span class="lens-summary-chip" id="lens-summary-chip" title="Active lens summary"></span>
+                        <button class="filter-btn" id="needs-review-btn" title="Show items queued for review">
+                            <i class="fas fa-clipboard-check"></i> Needs Review
+                        </button>
                     </div>
                 </div>
             </section>
@@ -694,6 +713,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ajv@8/dist/ajv7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script src="app.js"></script>
 
     <!-- Schema Validation Report Modal -->
