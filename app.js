@@ -228,7 +228,7 @@ function generateRemainingJobs() {
 
 // Global application state
 let jobsData = [...initialJobsData, ...generateRemainingJobs()];
-let currentView = 'kanban';
+let currentView = 'home';
 let filteredJobs = [...jobsData];
 const selectedJobs = new Set();
 let currentFilters = {
@@ -1317,13 +1317,15 @@ function switchView(view) {
     btn.classList.toggle('active', btn.dataset.view === view);
   });
   
-  // Update active view
-  document.querySelectorAll('.view-content').forEach(content => {
-    const isArchive = content.id === 'archive-view';
-    const shouldShow = (view === 'archive' && isArchive) || 
-                      (view !== 'archive' && content.id === `${view}-view`);
-    content.classList.toggle('active', shouldShow);
-  });
+  // Show/hide views based on new IA
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.classList.toggle('active', !!on); };
+  // Home shows no explicit view-content; keep dashboard visible
+  const dash = document.querySelector('.dashboard-section');
+  if (dash) dash.style.display = (view === 'home') ? '' : 'none';
+  show('discover-view', view === 'triage');
+  show('kanban-view', view === 'pipeline');
+  show('analytics-view', view === 'insights');
+  show('archive-view', view === 'archive');
   
   // Update filter state for archive
   if (view === 'archive') {
@@ -1376,6 +1378,11 @@ function renderDiscoverView() {
   const cardEl = document.getElementById('discover-card');
   const statusEl = document.getElementById('discover-status');
   if (!cardEl) return;
+  const gear = document.getElementById('discover-gear');
+  const adv = document.getElementById('discover-controls');
+  if (gear && adv) {
+    gear.onclick = () => { adv.style.display = adv.style.display === 'none' ? 'flex' : 'none'; };
+  }
   if (discoveryQueue.length === 0) buildDiscoveryQueue();
   const pick = pickDiscoverJob();
   const job = pick?.job;
