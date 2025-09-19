@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Search Optimization Platform</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1 class="app-title">
+                        <i class="fas fa-briefcase"></i>
+                        Job Search Optimizer
+                    </h1>
+                    <div class="header-stats">
+                        <span class="stat-item">
+                            <span class="stat-value" id="total-roles">50</span>
+                            <span class="stat-label">Total Roles</span>
+                        </span>
+                        <span class="stat-item">
+                            <span class="stat-value" id="active-roles">50</span>
+                            <span class="stat-label">Active</span>
+                        </span>
+                        <span class="stat-item">
+                            <span class="stat-value" id="avg-fit-score">8.4</span>
+                            <span class="stat-label">Avg Fit Score</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn--secondary btn--sm" id="goals-btn">
+                        <i class="fas fa-target"></i> Goals & Pacing
+                    </button>
+                    <button class="btn btn--secondary btn--sm" id="activity-log-btn">
+                        <i class="fas fa-history"></i> Activity Log
+                    </button>
+                    <button class="btn btn--secondary btn--sm" id="archive-btn">
+                        <i class="fas fa-archive"></i> Archive
+                    </button>
+                    <input type="file" id="csv-import-input" accept=".csv" style="display: none;">
+                    <button class="btn btn--secondary btn--sm" id="import-btn">
+                        <i class="fas fa-upload"></i> Import CSV
+                    </button>
+                    <button class="btn btn--secondary btn--sm" id="export-btn">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main class="main-content">
+            <!-- Dashboard Overview -->
+            <section class="dashboard-section">
+                <div class="dashboard-cards">
+                    <div class="dashboard-card">
+                        <div class="card-icon success">
+                            <i class="fas fa-handshake"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Offers</h3>
+                            <div class="card-value" id="offers-count">0</div>
+                            <div class="card-change neutral">Ready to convert</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon warning">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Interviewing</h3>
+                            <div class="card-value" id="interviewing-count">0</div>
+                            <div class="card-change neutral">Pipeline ready</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon info">
+                            <i class="fas fa-paper-plane"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Applied</h3>
+                            <div class="card-value" id="applied-count">0</div>
+                            <div class="card-change neutral">Ready to apply</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon primary">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Not Started</h3>
+                            <div class="card-value" id="not-started-count">50</div>
+                            <div class="card-change positive">Fresh opportunities</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Goals Progress Bar -->
+            <section class="goals-section" id="goals-section">
+                <div class="goals-progress-card">
+                    <div class="goals-header">
+                        <div class="goals-info">
+                            <h3 id="goals-title">Goal: 5 offers in 6 weeks</h3>
+                            <div class="goals-meta">
+                                <span id="goals-progress">Week 3 of 6</span>
+                                <span id="goals-recommendation">Recommended: 3 more applications this week</span>
+                            </div>
+                        </div>
+                        <div class="goals-stats">
+                            <div class="goal-stat">
+                                <span class="goal-stat-value" id="goal-offers">0</span>
+                                <span class="goal-stat-label">Offers</span>
+                            </div>
+                            <div class="goal-stat">
+                                <span class="goal-stat-value" id="goal-pipeline">0</span>
+                                <span class="goal-stat-label">In Pipeline</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="goals-progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Controls -->
+            <section class="controls-section">
+                <div class="controls-left">
+                    <div class="view-switcher">
+                        <button class="view-btn" data-view="table">
+                            <i class="fas fa-table"></i> Table
+                        </button>
+                        <button class="view-btn active" data-view="kanban">
+                            <i class="fas fa-columns"></i> Pipeline
+                        </button>
+                        <button class="view-btn" data-view="analytics">
+                            <i class="fas fa-chart-bar"></i> Analytics
+                        </button>
+                    </div>
+                    <div class="bulk-actions hidden" id="bulk-actions">
+                        <span class="bulk-counter" id="bulk-counter">0 selected</span>
+                        <select class="form-control bulk-select" id="bulk-status-select">
+                            <option value="">Change Status</option>
+                            <option value="not-started">Not Started</option>
+                            <option value="research">Research</option>
+                            <option value="applied">Applied</option>
+                            <option value="interviewing">Interviewing</option>
+                            <option value="offer">Offer</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                        <select class="form-control bulk-select" id="bulk-vibe-select">
+                            <option value="">Change Vibe</option>
+                            <option value="😊">😊 Positive</option>
+                            <option value="😐">😐 Neutral</option>
+                            <option value="😟">😟 Concerned</option>
+                        </select>
+                        <button class="btn btn--sm btn--primary" id="bulk-apply-btn">Apply</button>
+                        <button class="btn btn--sm btn--outline" id="bulk-clear-btn">Clear</button>
+                    </div>
+                </div>
+                <div class="controls-right">
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" placeholder="Search companies, roles, or tags..." id="search-input">
+                    </div>
+                    <div class="filter-container">
+                        <button class="filter-btn" id="filter-btn">
+                            <i class="fas fa-filter"></i> Filters
+                            <span class="filter-count hidden" id="filter-count">0</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filters Panel -->
+            <div class="filters-panel hidden" id="filters-panel">
+                <div class="filters-content">
+                    <div class="filter-group">
+                        <label class="filter-label">Status</label>
+                        <div class="filter-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="not-started" class="status-filter">
+                                <span class="checkmark"></span>
+                                Not Started
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="research" class="status-filter">
+                                <span class="checkmark"></span>
+                                Research
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="applied" class="status-filter">
+                                <span class="checkmark"></span>
+                                Applied
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="interviewing" class="status-filter">
+                                <span class="checkmark"></span>
+                                Interviewing
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="offer" class="status-filter">
+                                <span class="checkmark"></span>
+                                Offer
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="rejected" class="status-filter">
+                                <span class="checkmark"></span>
+                                Rejected
+                            </label>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Fit Score</label>
+                        <input type="range" class="range-slider" id="fit-score-range" min="0" max="10" step="0.1" value="0">
+                        <div class="range-labels">
+                            <span>0</span>
+                            <span id="fit-score-value">0+</span>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Vibe</label>
+                        <div class="filter-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="😊" class="vibe-filter">
+                                <span class="checkmark"></span>
+                                😊 Positive
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="😐" class="vibe-filter">
+                                <span class="checkmark"></span>
+                                😐 Neutral
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="😟" class="vibe-filter">
+                                <span class="checkmark"></span>
+                                😟 Concerned
+                            </label>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn--outline btn--sm" id="clear-filters-btn">Clear All</button>
+                        <button class="btn btn--primary btn--sm" id="apply-filters-btn">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Views -->
+            <div class="content-views">
+                <!-- Table View -->
+                <div class="view-content" id="table-view">
+                    <div class="table-container">
+                        <table class="jobs-table">
+                            <thead>
+                                <tr>
+                                    <th class="select-col">
+                                        <input type="checkbox" id="select-all">
+                                    </th>
+                                    <th class="sortable" data-sort="company">
+                                        Company <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="roleTitle">
+                                        Role <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="status">
+                                        Status <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="fitScore">
+                                        Fit Score <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="vibe">
+                                        Vibe <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="salary">
+                                        Salary <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="appliedDate">
+                                        Applied <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jobs-table-body">
+                                <!-- Job rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Kanban View -->
+                <div class="view-content active" id="kanban-view">
+                    <div class="kanban-board">
+                        <div class="kanban-column" data-status="not-started">
+                            <div class="column-header">
+                                <h3>Not Started <span class="count" id="not-started-kanban-count">50</span></h3>
+                            </div>
+                            <div class="column-content" id="not-started-column"></div>
+                        </div>
+                        <div class="kanban-column" data-status="research">
+                            <div class="column-header">
+                                <h3>Research <span class="count" id="research-kanban-count">0</span></h3>
+                            </div>
+                            <div class="column-content" id="research-column"></div>
+                        </div>
+                        <div class="kanban-column" data-status="applied">
+                            <div class="column-header">
+                                <h3>Applied <span class="count" id="applied-kanban-count">0</span></h3>
+                            </div>
+                            <div class="column-content" id="applied-column"></div>
+                        </div>
+                        <div class="kanban-column" data-status="interviewing">
+                            <div class="column-header">
+                                <h3>Interviewing <span class="count" id="interviewing-kanban-count">0</span></h3>
+                            </div>
+                            <div class="column-content" id="interviewing-column"></div>
+                        </div>
+                        <div class="kanban-column" data-status="offer">
+                            <div class="column-header">
+                                <h3>Offers <span class="count" id="offer-kanban-count">0</span></h3>
+                            </div>
+                            <div class="column-content" id="offer-column"></div>
+                        </div>
+                        <div class="kanban-column" data-status="rejected">
+                            <div class="column-header">
+                                <h3>Rejected <span class="count" id="rejected-kanban-count">0</span></h3>
+                            </div>
+                            <div class="column-content" id="rejected-column"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics View -->
+                <div class="view-content" id="analytics-view">
+                    <div class="analytics-grid">
+                        <div class="analytics-card">
+                            <h3>Pipeline Conversion Funnel</h3>
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="funnel-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Fit Score vs Success Rate</h3>
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="fit-success-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Weekly Activity Trends</h3>
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="activity-trend-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Top Performing Sectors</h3>
+                            <div class="segment-stats" id="segment-stats"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Archive View -->
+                <div class="view-content" id="archive-view">
+                    <div class="archive-header">
+                        <h2>Archived Jobs</h2>
+                        <p>Jobs that have been archived or rejected. You can restore them if they become active again.</p>
+                    </div>
+                    <div class="table-container">
+                        <table class="jobs-table">
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th>Role</th>
+                                    <th>Archived Date</th>
+                                    <th>Reason</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="archive-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Job Details Modal -->
+        <div class="modal hidden" id="job-modal">
+            <div class="modal-overlay" id="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="modal-job-title">Job Details</h2>
+                    <button class="modal-close" id="modal-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="modal-body">
+                    <!-- Job details will be populated by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline" id="modal-cancel">Close</button>
+                    <button class="btn btn--primary" id="modal-save">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Goals Setting Modal -->
+        <div class="modal hidden" id="goals-modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Set Goals & Pacing</h2>
+                    <button class="modal-close" id="goals-modal-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Target Number of Offers</label>
+                        <input type="number" class="form-control" id="goal-offers-input" min="1" max="20" value="5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Timeline (weeks)</label>
+                        <input type="number" class="form-control" id="goal-timeline-input" min="1" max="52" value="6">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Expected Application-to-Interview Rate (%)</label>
+                        <input type="number" class="form-control" id="goal-interview-rate" min="5" max="50" value="30">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Expected Interview-to-Offer Rate (%)</label>
+                        <input type="number" class="form-control" id="goal-offer-rate" min="5" max="50" value="25">
+                    </div>
+                    <div class="goals-calculation" id="goals-calculation">
+                        <h4>Recommended Strategy:</h4>
+                        <p id="goals-recommendation-text">Based on your conversion rates, you should apply to <strong>67 roles</strong> to achieve 5 offers in 6 weeks.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline" id="goals-cancel">Cancel</button>
+                    <button class="btn btn--primary" id="goals-save">Set Goals</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log Modal -->
+        <div class="modal hidden" id="master-activity-modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Master Activity Log</h2>
+                    <button class="modal-close" id="activity-log-modal-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="activity-log-header">
+                        <div class="activity-stats">
+                            <div class="activity-stat">
+                                <span class="stat-value" id="total-activities">0</span>
+                                <span class="stat-label">Total Activities</span>
+                            </div>
+                            <div class="activity-stat">
+                                <span class="stat-value" id="this-week-activities">0</span>
+                                <span class="stat-label">This Week</span>
+                            </div>
+                            <div class="activity-stat">
+                                <span class="stat-value" id="productivity-score">100</span>
+                                <span class="stat-label">Productivity Score</span>
+                            </div>
+                        </div>
+                        <div class="activity-achievements" id="activity-achievements">
+                            <!-- Achievements will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="activity-timeline" id="master-activity-timeline">
+                        <!-- Activities will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline" id="activity-log-close">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CSV Import Result Modal -->
+        <div class="modal hidden" id="import-result-modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Import Results</h2>
+                    <button class="modal-close" id="import-result-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="import-result-body">
+                    <!-- Import results will be populated by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--primary" id="import-result-ok">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container" id="toast-container"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
