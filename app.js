@@ -1292,7 +1292,9 @@ function renderKanbanView() {
     
     if (!column || !countEl) return;
     
-    const jobs = filteredJobs.filter(job => job.status === status);
+    const jobs = filteredJobs
+      .filter(job => job.status === status)
+      .sort((a, b) => (parseFloat(b.fitScore) || 0) - (parseFloat(a.fitScore) || 0));
     countEl.textContent = jobs.length;
     
     column.innerHTML = '';
