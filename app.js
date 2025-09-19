@@ -405,6 +405,22 @@ function bindEventListeners() {
 
   // Kanban sort control
   bindKanbanSort();
+
+  // Discover keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (currentView !== 'discover') return;
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight') {
+      const job = discoveryQueue[discoveryIndex]; if (job) handleDiscoverLabel(1, job);
+    } else if (e.key === 'ArrowLeft') {
+      const job = discoveryQueue[discoveryIndex]; if (job) handleDiscoverLabel(0, job);
+    } else if (e.key === ' ') {
+      e.preventDefault(); const job = discoveryQueue[discoveryIndex]; if (job) handleDiscoverLabel(null, job);
+    } else if (e.key.toLowerCase() === 'z') {
+      try { undoDiscover(); } catch (err) { console.error(err); }
+    }
+  });
 }
 
 function bindKanbanSort() {
@@ -2624,6 +2640,7 @@ async function handleExportBundle() {
     const { jobsErrors, feedbackErrors } = ajvReport;
     if (jobsErrors || feedbackErrors) {
       showToast(`Bundle exported with schema issues (jobs:${jobsErrors||0}, feedback:${feedbackErrors||0})`, 'error');
+      showSchemaReport(ajvReport);
     } else {
       showToast('Bundle exported (schemas valid)', 'success');
     }
@@ -2653,19 +2670,52 @@ async function validateWithAjv(jobs) {
   const valJobs = jobsSchema ? ajv.compile(jobsSchema) : null;
   const valFb = fbSchema ? ajv.compile(fbSchema) : null;
   let jobsErrors = 0, feedbackErrors = 0;
+  const jobsErrs = [];
+  const fbErrs = [];
   if (valJobs) {
     for (const j of jobs) {
       const rec = toJobsV1Record(j);
-      if (!valJobs(rec)) jobsErrors++;
+      if (!valJobs(rec)) {
+        jobsErrors++;
+        if (jobsErrs.length < 5) jobsErrs.push({ id: rec.id, errors: (valJobs.errors || []).map(e => `${e.instancePath||'/'} ${e.message}`) });
+      }
     }
   }
   if (valFb) {
     const events = (JSON.parse(localStorage.getItem('discoveryFeedback') || '[]') || []);
     for (const e of events) {
-      if (!valFb(e)) feedbackErrors++;
+      if (!valFb(e)) {
+        feedbackErrors++;
+        if (fbErrs.length < 5) fbErrs.push({ id: e && e.id, errors: (valFb.errors || []).map(er => `${er.instancePath||'/'} ${er.message}`) });
+      }
     }
   }
-  return { jobsErrors, feedbackErrors };
+  return { jobsErrors, feedbackErrors, jobsErrs, fbErrs };
+}
+
+function showSchemaReport(report) {
+  const modal = document.getElementById('schema-report-modal');
+  const body = document.getElementById('schema-report-body');
+  const ok = document.getElementById('schema-report-ok');
+  const close = document.getElementById('schema-report-close');
+  if (!modal || !body) return;
+  const lines = [];
+  lines.push(`Jobs errors: ${report.jobsErrors||0}`);
+  (report.jobsErrs||[]).forEach((e,i) => {
+    lines.push(`  [${i+1}] id=${e.id}`);
+    (e.errors||[]).forEach(msg => lines.push(`    - ${msg}`));
+  });
+  lines.push('');
+  lines.push(`Feedback errors: ${report.feedbackErrors||0}`);
+  (report.fbErrs||[]).forEach((e,i) => {
+    lines.push(`  [${i+1}] id=${e.id}`);
+    (e.errors||[]).forEach(msg => lines.push(`    - ${msg}`));
+  });
+  body.textContent = lines.join('\n');
+  modal.classList.remove('hidden');
+  const closer = () => modal.classList.add('hidden');
+  if (ok) ok.onclick = closer;
+  if (close) close.onclick = closer;
 }
 
 // Dashboard and Utility Functions

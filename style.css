@@ -1178,6 +1178,9 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
 .discover-actions { display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
 .discover-status { text-align: center; color: var(--color-text-secondary); font-size: var(--font-size-sm); margin-top: 8px; }
 
+/* Schema report */
+.schema-report-body { font-family: var(--font-family-mono); font-size: 12px; white-space: pre-wrap; background: #fafafa; border: 1px solid var(--color-card-border-inner); border-radius: var(--radius-base); padding: 8px; max-height: 300px; overflow: auto; }
+
 /* Filters Panel */
 .filters-panel {
   background-color: var(--color-surface);

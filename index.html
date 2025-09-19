@@ -419,6 +419,7 @@
                         </div>
                         <div class="analytics-card">
                             <h3>Top Performing Sectors</h3>
+                            <div class="segment-summary" id="segment-summary"></div>
                             <div class="segment-stats" id="segment-stats"></div>
                         </div>
                     </div>
@@ -666,5 +667,22 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ajv@8/dist/ajv7.min.js"></script>
     <script src="app.js"></script>
+
+    <!-- Schema Validation Report Modal -->
+    <div class="modal hidden" id="schema-report-modal">
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Export Validation Report</h2>
+          <button class="modal-close" id="schema-report-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div id="schema-report-body" class="schema-report-body"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn--primary" id="schema-report-ok">OK</button>
+        </div>
+      </div>
+    </div>
 </body>
 </html>
