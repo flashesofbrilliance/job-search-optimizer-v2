@@ -1353,6 +1353,7 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
 .jobs-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .jobs-table th,
@@ -1360,6 +1361,8 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
   padding: var(--space-12) var(--space-16);
   text-align: left;
   border-bottom: 1px solid var(--color-card-border-inner);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .jobs-table th {
@@ -1411,6 +1414,7 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
 .company-cell {
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
+  white-space: nowrap;
 }
 
 .company-cell a {
@@ -1425,6 +1429,7 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
 
 .role-cell {
   max-width: 250px;
+  white-space: nowrap;
 }
 
 .role-title {
@@ -1483,6 +1488,7 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
   display: flex;
   align-items: center;
   gap: var(--space-6);
+  white-space: nowrap;
 }
 
 .fit-score-value {
@@ -1524,7 +1530,14 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
   display: flex;
   gap: var(--space-8);
   align-items: center;
+  justify-content: flex-start;
+  white-space: nowrap;
+  min-width: 120px;
 }
+
+/* Link cell and date/salary cells prevent wrapping issues */
+.link-cell { white-space: nowrap; max-width: 160px; }
+.salary-cell, .date-cell { white-space: nowrap; }
 
 .action-btn {
   width: 32px;

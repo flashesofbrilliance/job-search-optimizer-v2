@@ -1,6 +1,6 @@
-# Job Search Optimizer v2.0
+# Failure To Land (FTL) — Job Search Optimizer v2.0
 
-Enterprise-grade job application tracking and optimization platform with validated learning capabilities.
+Failure To Land (FTL) is an enterprise‑grade job application tracking and optimization platform with validated learning capabilities.
 
 ## Features
 - 50+ curated crypto/AI/fintech product leadership roles
