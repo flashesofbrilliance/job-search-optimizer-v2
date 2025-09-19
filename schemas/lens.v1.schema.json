@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/lens.v1.schema.json",
+  "title": "Lens Definition (lens.v1)",
+  "type": "object",
+  "required": ["name","mode"],
+  "properties": {
+    "name": { "type": "string" },
+    "mode": { "enum": ["filter","highlight"] },
+    "color": { "type": ["string","null"] },
+    "include": { "$ref": "#/definitions/rules" },
+    "exclude": { "$ref": "#/definitions/rules" }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "rule": {
+      "type": "object",
+      "properties": {
+        "all": { "$ref": "#/definitions/rules" },
+        "any": { "$ref": "#/definitions/rules" },
+        "not": { "$ref": "#/definitions/rule" },
+        "field": { "type": "string" },
+        "equals": {},
+        "in": { "type": "array" },
+        "includes": {},
+        "includesAny": { "type": "array" },
+        "gte": { "type": "number" },
+        "lte": { "type": "number" },
+        "matches": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/rule" }
+    }
+  }
+}
+

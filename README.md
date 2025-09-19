@@ -82,3 +82,14 @@ An open-source prompt template for iterative strategy and pacing lives at `promp
 - Presets: Pattern (Top-fit AI/Crypto), Platform (Greenhouse/Lever), Bias (NYC/Onsite highlight), Pacing (This Week), and Custom (JSON).
 - Modes: filter (narrows list) or highlight (visual emphasis without filtering).
 - Fields supported in Custom: company, roleTitle, jobUrl, jobDomain, tags, location, status, fitScore, vibe, salary.
+
+## Data Interoperability
+
+- Schemas (JSON Schema) in `schemas/`:
+  - `jobs.v1.schema.json`, `feedback.v1.schema.json`, `lens.v1.schema.json`, `model.v1.schema.json`.
+- Exports:
+  - CSV: `jobs.csv` (stable, additive-safe headers)
+  - JSONL: `jobs.jsonl` (jobs.v1 records), `feedback.jsonl` (CloudEvents-like feedback)
+  - Bundle ZIP: `Export Bundle` packs jobs.csv, jobs.jsonl, feedback.jsonl, lenses.json, model.json, README.txt, checksums.txt
+- Conventions:
+  - ISO-8601 times, ISO 3166 country codes, ISO 4217 currency, schema_version in each JSON record.

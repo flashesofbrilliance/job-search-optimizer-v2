@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/model.v1.schema.json",
+  "title": "Model State (model.v1)",
+  "type": "object",
+  "required": ["weights","training_count","schema_version"],
+  "properties": {
+    "schema_version": { "const": "model.v1" },
+    "weights": { "type": "object", "additionalProperties": { "type": "number" } },
+    "reason_weights": { "type": "object", "additionalProperties": { "type": "number" } },
+    "training_count": { "type": "integer", "minimum": 0 },
+    "created_at": { "type": ["string","null"], "format": "date-time" }
+  },
+  "additionalProperties": false
+}
+

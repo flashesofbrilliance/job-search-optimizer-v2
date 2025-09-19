@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/feedback.v1.schema.json",
+  "title": "Discovery Feedback Event (feedback.v1)",
+  "type": "object",
+  "required": ["specversion","id","type","source","time","data"],
+  "properties": {
+    "specversion": { "const": "1.0" },
+    "id": { "type": "string" },
+    "type": { "const": "com.jso.discovery.feedback" },
+    "source": { "type": "string" },
+    "time": { "type": "string", "format": "date-time" },
+    "data": {
+      "type": "object",
+      "required": ["job_id","label"],
+      "properties": {
+        "job_id": { "type": "string" },
+        "label": { "enum": [0,1,null] },
+        "reasons": { "type": "array", "items": { "type": "string" } },
+        "lens_active": { "type": ["string", "null"] },
+        "feature_snapshot": { "type": "object", "additionalProperties": { "type": ["number","integer","string","boolean"] } },
+        "model_version": { "type": ["string","null"] },
+        "session_id": { "type": ["string","null"] }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
+

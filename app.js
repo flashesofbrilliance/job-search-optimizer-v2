@@ -480,6 +480,14 @@ function bindHeaderActions() {
       handleExport();
     });
   }
+  // Export bundle (ZIP)
+  const exportBundleBtn = document.getElementById('export-bundle-btn');
+  if (exportBundleBtn) {
+    exportBundleBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try { await handleExportBundle(); } catch (err) { console.error(err); showToast('Bundle export failed', 'error'); }
+    });
+  }
 }
 
 function bindSearchAndFilters() {
@@ -2218,20 +2226,38 @@ function handleExport() {
 }
 
 function exportToCSV(jobs) {
-  const headers = ['Company', 'Role', 'Job URL', 'Status', 'Fit Score', 'Vibe', 'Salary', 'Applied Date', 'Location', 'Notes', 'Tags'];
+  const headers = [
+    'Schema Version','ID','Company','Role','Job URL','Job Domain','Status','Fit Score','Fit Conf','Fit Model',
+    'Vibe','Salary','Salary Min','Salary Max','Currency','Period','Applied Date','Location','Country Code','Timezone','Remote Policy','Employment Type','Level','Notes','Tags','Skills','Source Type','Platform','Experiment ID'
+  ];
   
   const rows = jobs.map(job => [
+    'jobs.v1',
+    job.id,
     job.company,
     job.roleTitle,
     job.jobUrl,
+    getJobDomain(job.jobUrl),
     job.status,
     job.fitScore,
+    (job.fit && job.fit.conf) || '',
+    (job.fit && job.fit.model_version) || '',
     job.vibe,
     job.salary,
+    '', '', '', '', // structured salary left empty unless populated
     job.appliedDate || '',
     job.location,
+    job.country_code || '',
+    job.timezone || '',
+    job.remote_policy || '',
+    job.employment_type || '',
+    job.level || '',
     job.notes || '',
-    job.tags.join('; ')
+    (job.tags || []).join('; '),
+    (job.skills || []).join('; '),
+    job.sourceType || '',
+    job.platform || '',
+    job.experimentId || ''
   ]);
   
   return [headers, ...rows].map(row => 
@@ -2245,6 +2271,105 @@ function downloadCSV(csvContent, filename) {
   link.href = URL.createObjectURL(blob);
   link.download = filename;
   link.click();
+}
+
+// JSONL exporters
+function exportJobsJSONL(jobs) {
+  const lines = jobs.map(j => JSON.stringify(toJobsV1Record(j)));
+  return lines.join('\n');
+}
+
+function toJobsV1Record(job) {
+  return {
+    schema_version: 'jobs.v1',
+    id: job.id,
+    company: job.company,
+    title: job.roleTitle,
+    jobUrl: job.jobUrl,
+    jobDomain: getJobDomain(job.jobUrl),
+    location: job.location,
+    country_code: job.country_code || null,
+    timezone: job.timezone || null,
+    remote_policy: job.remote_policy || null,
+    employment_type: job.employment_type || null,
+    level: job.level || null,
+    salary: job.salary_struct || null,
+    tags: job.tags || [],
+    skills: job.skills || [],
+    sourceType: job.sourceType || null,
+    platform: job.platform || null,
+    status: job.status,
+    lifecycle_dates: job.lifecycle_dates || {},
+    fit: job.fit || { score: job.fitScore },
+    experimentId: job.experimentId || null,
+    provenance: job.provenance || { data_source: 'app', updated_at: new Date().toISOString() }
+  };
+}
+
+function exportFeedbackJSONL() {
+  const events = JSON.parse(localStorage.getItem('discoveryFeedback') || '[]');
+  return events.map(e => JSON.stringify(e)).join('\n');
+}
+
+function exportLensesJSON() {
+  const payload = {
+    schema_version: 'lens.v1',
+    active: activeLensId,
+    presets: lensPresets,
+    custom: customLens,
+    prompt: promptLens
+  };
+  return JSON.stringify(payload, null, 2);
+}
+
+function exportModelJSON() {
+  const model = JSON.parse(localStorage.getItem('modelState') || '{}');
+  const fallback = { schema_version: 'model.v1', weights: {}, reason_weights: {}, training_count: 0, created_at: new Date().toISOString() };
+  return JSON.stringify({ ...fallback, ...model }, null, 2);
+}
+
+async function handleExportBundle() {
+  if (typeof JSZip === 'undefined') { showToast('JSZip not loaded', 'error'); return; }
+  const zip = new JSZip();
+  const allJobs = jobsData.slice();
+  const files = [];
+  // Data files
+  const jobsCsv = exportToCSV(allJobs);
+  files.push({ name: 'jobs.csv', data: new Blob([jobsCsv], { type: 'text/csv' }) });
+  const jobsJsonl = exportJobsJSONL(allJobs);
+  files.push({ name: 'jobs.jsonl', data: new Blob([jobsJsonl], { type: 'application/json' }) });
+  const feedbackJsonl = exportFeedbackJSONL();
+  files.push({ name: 'feedback.jsonl', data: new Blob([feedbackJsonl], { type: 'application/json' }) });
+  const lensesJson = exportLensesJSON();
+  files.push({ name: 'lenses.json', data: new Blob([lensesJson], { type: 'application/json' }) });
+  const modelJson = exportModelJSON();
+  files.push({ name: 'model.json', data: new Blob([modelJson], { type: 'application/json' }) });
+  // README
+  const readme = `Job Search Optimizer v2 Export\nGenerated: ${new Date().toISOString()}\nSchemas: jobs.v1, feedback.v1, lens.v1, model.v1\nCounts: jobs=${allJobs.length} events=${(feedbackJsonl && feedbackJsonl.split(/\n/).filter(Boolean).length) || 0}\n`;
+  files.push({ name: 'README.txt', data: new Blob([readme], { type: 'text/plain' }) });
+  // Checksums
+  const checksums = await buildChecksums(files);
+  files.push({ name: 'checksums.txt', data: new Blob([checksums], { type: 'text/plain' }) });
+  // Add to zip
+  for (const f of files) {
+    const buf = await f.data.arrayBuffer();
+    zip.file(f.name, buf);
+  }
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `jso_export_${Date.now()}.zip`; a.click();
+}
+
+async function buildChecksums(files) {
+  const lines = [];
+  for (const f of files) {
+    const ab = await f.data.arrayBuffer();
+    const hash = await crypto.subtle.digest('SHA-256', ab);
+    const hex = [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2,'0')).join('');
+    lines.push(`SHA256  ${hex}  ${f.name}`);
+  }
+  return lines.join('\n');
 }
 
 // Dashboard and Utility Functions

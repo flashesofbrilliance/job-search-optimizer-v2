@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/jobs.v1.schema.json",
+  "title": "Job Record (jobs.v1)",
+  "type": "object",
+  "required": ["id", "company", "title", "jobUrl", "status", "schema_version"],
+  "properties": {
+    "schema_version": { "const": "jobs.v1" },
+    "id": { "type": "string" },
+    "company": { "type": "string" },
+    "title": { "type": "string" },
+    "jobUrl": { "type": "string", "format": "uri" },
+    "jobDomain": { "type": "string" },
+    "location": { "type": "string" },
+    "country_code": { "type": "string", "pattern": "^[A-Z]{2}$" },
+    "timezone": { "type": "string" },
+    "remote_policy": { "enum": ["remote", "hybrid", "onsite", null] },
+    "employment_type": { "enum": ["full_time", "part_time", "contract", "intern", "temp", null] },
+    "level": { "type": "string" },
+    "salary": {
+      "type": "object",
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "period": { "enum": ["year", "month", "day", "hour", null] }
+      },
+      "additionalProperties": false
+    },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "skills": { "type": "array", "items": { "type": "string" } },
+    "sourceType": { "enum": ["referral", "cold", "recruiter", "inbound", null] },
+    "platform": { "type": "string" },
+    "status": { "enum": ["not-started","research","applied","interviewing","offer","rejected","archived"] },
+    "lifecycle_dates": {
+      "type": "object",
+      "properties": {
+        "appliedAt": { "type": "string", "format": "date-time" },
+        "firstResponseAt": { "type": "string", "format": "date-time" },
+        "firstInterviewAt": { "type": "string", "format": "date-time" },
+        "offerAt": { "type": "string", "format": "date-time" },
+        "rejectedAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "fit": {
+      "type": "object",
+      "properties": {
+        "score": { "type": "number" },
+        "conf": { "type": "number", "minimum": 0, "maximum": 1 },
+        "model_version": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "experimentId": { "type": ["string", "null"] },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "data_source": { "type": "string" },
+        "collected_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}
+
