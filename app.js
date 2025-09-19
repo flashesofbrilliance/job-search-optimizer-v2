@@ -279,6 +279,14 @@ let promptLens = null; // saved-from-prompt lens (optional)
 // Kanban sort state
 let kanbanSort = { key: 'fit', dir: 'desc' }; // keys: fit|company|applied; dir: asc|desc
 
+// Discover state
+let discoveryQueue = [];
+let discoveryIndex = 0;
+const YES_REASONS = ['great_fit','domain_match','remote_ok','comp_band','impact_scope','referral_possible'];
+const NO_REASONS = ['level_mismatch','onsite_only','domain_misfit','comp_low','legacy_stack','too_early_late'];
+const selectedYesReasons = new Set();
+const selectedNoReasons = new Set();
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
   initializeApp();
@@ -1198,6 +1206,9 @@ function switchView(view) {
   selectedJobs.clear();
   updateBulkActions();
   updateKanbanSortUI();
+  if (view === 'discover') {
+    buildDiscoveryQueue();
+  }
 }
 
 function renderCurrentView() {
@@ -1208,6 +1219,9 @@ function renderCurrentView() {
     case 'kanban':
       renderKanbanView();
       break;
+    case 'discover':
+      renderDiscoverView();
+      break;
     case 'analytics':
       renderAnalyticsView();
       break;
@@ -1215,6 +1229,151 @@ function renderCurrentView() {
       renderArchiveView();
       break;
   }
+}
+
+// Discover View
+function buildDiscoveryQueue() {
+  discoveryQueue = jobsData.filter(j => !j.isArchived && j.status === 'not-started');
+  // Optional: shuffle a bit but bias by fit
+  discoveryQueue.sort((a,b) => (parseFloat(b.fitScore)||0) - (parseFloat(a.fitScore)||0));
+  discoveryIndex = Math.min(discoveryIndex, Math.max(0, discoveryQueue.length - 1));
+}
+
+function renderDiscoverView() {
+  const cardEl = document.getElementById('discover-card');
+  const statusEl = document.getElementById('discover-status');
+  if (!cardEl) return;
+  if (discoveryQueue.length === 0) buildDiscoveryQueue();
+  const job = discoveryQueue[discoveryIndex];
+  if (!job) {
+    cardEl.innerHTML = '<div class="company">All caught up</div><div class="meta">No more roles in Not Started.</div>';
+    if (statusEl) statusEl.textContent = '';
+    return;
+  }
+  const domain = getJobDomain(job.jobUrl);
+  cardEl.innerHTML = `
+    <div class="company">${job.company} • <span class="meta">${domain}</span></div>
+    <div class="title">${job.roleTitle}</div>
+    <div class="meta">${job.location || ''} • Fit ${job.fitScore}</div>
+    <div class="link"><a href="${normalizeUrl(job.jobUrl)}" target="_blank" rel="noopener">Open posting</a></div>
+  `;
+
+  // render chips
+  renderReasonChips('reasons-yes', YES_REASONS, selectedYesReasons);
+  renderReasonChips('reasons-no', NO_REASONS, selectedNoReasons);
+
+  // action buttons
+  const btnYes = document.getElementById('discover-yes');
+  const btnNo = document.getElementById('discover-no');
+  const btnSkip = document.getElementById('discover-skip');
+  if (btnYes) btnYes.onclick = () => handleDiscoverLabel(1, job);
+  if (btnNo) btnNo.onclick = () => handleDiscoverLabel(0, job);
+  if (btnSkip) btnSkip.onclick = () => handleDiscoverLabel(null, job);
+}
+
+function renderReasonChips(containerId, opts, selectedSet) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = opts.map(k => {
+    const nice = k.replace(/_/g,' ').replace(/\b\w/g, s=>s.toUpperCase());
+    const sel = selectedSet.has(k) ? 'selected' : '';
+    return `<span class="chip ${sel}" data-k="${k}">${nice}</span>`;
+  }).join('');
+  c.querySelectorAll('.chip').forEach(ch => {
+    ch.addEventListener('click', () => {
+      const k = ch.dataset.k; if (!k) return;
+      if (selectedSet.has(k)) selectedSet.delete(k); else selectedSet.add(k);
+      ch.classList.toggle('selected');
+    });
+  });
+}
+
+function handleDiscoverLabel(label, job) {
+  // capture reasons
+  const reasons = label === 1 ? Array.from(selectedYesReasons) : label === 0 ? Array.from(selectedNoReasons) : [];
+  // feedback event
+  logDiscoveryFeedback(job, label, reasons);
+  // model update + fit recompute
+  try {
+    const features = extractFeatures(job);
+    updateModelWithFeedback(label, features, reasons);
+    const newFit = computeFit(features);
+    job.fitScore = parseFloat(newFit.toFixed(1));
+    job.fit = { score: job.fitScore, conf: (job.fit?.conf || 0.5), model_version: 'v0.2.1' };
+  } catch (e) { console.warn('model update failed', e); }
+  // advance
+  selectedYesReasons.clear();
+  selectedNoReasons.clear();
+  if (label !== null) discoveryQueue.splice(discoveryIndex, 1); else discoveryIndex = (discoveryIndex + 1) % discoveryQueue.length;
+  saveDataToStorage();
+  renderDashboard();
+  applyAllFilters();
+  renderDiscoverView();
+}
+
+function logDiscoveryFeedback(job, label, reasons) {
+  const arr = JSON.parse(localStorage.getItem('discoveryFeedback') || '[]');
+  const evt = {
+    specversion: '1.0', id: `evt_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+    type: 'com.jso.discovery.feedback', source: '/discover/ui', time: new Date().toISOString(),
+    data: {
+      job_id: job.id, label, reasons,
+      lens_active: activeLensId,
+      feature_snapshot: extractFeatures(job),
+      model_version: (JSON.parse(localStorage.getItem('modelState') || '{}').model_version) || 'v0.2.1',
+      session_id: localStorage.getItem('session_id') || null
+    }
+  };
+  arr.push(evt);
+  localStorage.setItem('discoveryFeedback', JSON.stringify(arr));
+}
+
+// Simple online model (logistic)
+function getModelState() {
+  const def = { schema_version: 'model.v1', weights: {}, reason_weights: {}, training_count: 0, model_version: 'v0.2.1', created_at: new Date().toISOString() };
+  try { return { ...def, ...JSON.parse(localStorage.getItem('modelState') || '{}') }; } catch { return def; }
+}
+function saveModelState(s) { localStorage.setItem('modelState', JSON.stringify(s)); }
+
+function extractFeatures(job) {
+  const f = {};
+  const tags = (job.tags || []).map(t => (t||'').toLowerCase());
+  const role = (job.roleTitle || '').toLowerCase();
+  const level = role.split(' ')[0];
+  const domain = getJobDomain(job.jobUrl);
+  const remote = (job.location||'').toLowerCase().includes('remote') || job.remote_policy === 'remote';
+  if (tags.includes('crypto')) f['tag_crypto'] = 1;
+  if (tags.includes('ai')) f['tag_ai'] = 1;
+  if (tags.includes('fintech')) f['tag_fintech'] = 1;
+  f[`level_${level}`] = 1;
+  if (remote) f['remote'] = 1;
+  if (domain.includes('greenhouse.io')) f['platform_greenhouse'] = 1;
+  if (domain.includes('lever.co')) f['platform_lever'] = 1;
+  if (domain.includes('workday')) f['platform_workday'] = 1;
+  return f;
+}
+
+function dot(w, x) { let s = 0; for (const k in x) s += (w[k]||0) * x[k]; return s; }
+function sigmoid(z) { return 1 / (1 + Math.exp(-z)); }
+function computeFit(features) { const s = dot(getModelState().weights, features); return 10 * sigmoid(s); }
+
+function updateModelWithFeedback(label, features, reasons) {
+  if (label === null) return; // skip
+  const st = getModelState();
+  const eta = 0.2; // learning rate
+  const s = dot(st.weights, features); const p = sigmoid(s);
+  const err = (label === 1 ? 1 : 0) - p;
+  for (const k in features) {
+    const x = features[k]; st.weights[k] = (st.weights[k] || 0) + eta * err * x;
+  }
+  // reason shaping
+  (reasons||[]).forEach(r => {
+    const alpha = 0.05 * (label === 1 ? 1 : -1);
+    if (r.includes('domain')) { ['platform_greenhouse','platform_lever','platform_workday'].forEach(k => { if (st.weights[k] !== undefined) st.weights[k] += alpha; }); }
+    if (r === 'remote_ok' || r === 'onsite_only') { st.weights['remote'] = (st.weights['remote']||0) + alpha; }
+  });
+  st.training_count = (st.training_count||0) + 1;
+  saveModelState(st);
 }
 
 // Table View with Sorting

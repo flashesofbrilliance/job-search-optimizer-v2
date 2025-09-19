@@ -1162,6 +1162,22 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
 /* Lens indicator dot */
 .lens-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
 
+/* Discover view */
+.discover-wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
+.discover-card { border: 1px solid var(--color-card-border); border-radius: var(--radius-lg); background: #fff; padding: 16px; box-shadow: var(--shadow-sm); min-height: 140px; display: flex; flex-direction: column; gap: 8px; }
+.discover-card .title { font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); }
+.discover-card .company { color: var(--color-text-secondary); }
+.discover-card .meta { display: flex; gap: 12px; color: var(--color-text-secondary); font-size: var(--font-size-sm); }
+.discover-card .link a { color: var(--color-primary); text-decoration: none; }
+.discover-card .link a:hover { text-decoration: underline; }
+.discover-reasons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.reasons-title { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-bottom: 6px; }
+.reasons-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 6px 10px; border: 1px solid var(--color-card-border); border-radius: var(--radius-full); background: #fff; cursor: pointer; font-size: var(--font-size-sm); }
+.chip.selected { border-color: var(--color-primary); background: var(--color-bg-1); }
+.discover-actions { display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
+.discover-status { text-align: center; color: var(--color-text-secondary); font-size: var(--font-size-sm); margin-top: 8px; }
+
 /* Filters Panel */
 .filters-panel {
   background-color: var(--color-surface);

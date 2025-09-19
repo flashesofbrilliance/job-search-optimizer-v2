@@ -150,6 +150,9 @@
                         <button class="view-btn" data-view="table">
                             <i class="fas fa-table"></i> Table
                         </button>
+                        <button class="view-btn" data-view="discover">
+                            <i class="fas fa-water"></i> Discover
+                        </button>
                         <button class="view-btn active" data-view="kanban">
                             <i class="fas fa-columns"></i> Pipeline
                         </button>
@@ -364,6 +367,31 @@
                             </div>
                             <div class="column-content" id="rejected-column"></div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Discover View -->
+                <div class="view-content" id="discover-view">
+                    <div class="discover-wrap">
+                        <div class="discover-card" id="discover-card">
+                            <!-- Populated by JS: company, title, link, tags -->
+                        </div>
+                        <div class="discover-reasons">
+                            <div class="reasons-block">
+                                <div class="reasons-title">Why Yes?</div>
+                                <div id="reasons-yes" class="reasons-chips"></div>
+                            </div>
+                            <div class="reasons-block">
+                                <div class="reasons-title">Why No?</div>
+                                <div id="reasons-no" class="reasons-chips"></div>
+                            </div>
+                        </div>
+                        <div class="discover-actions">
+                            <button class="btn btn--outline" id="discover-no"><i class="fas fa-times"></i> No</button>
+                            <button class="btn" id="discover-skip"><i class="fas fa-forward"></i> Skip</button>
+                            <button class="btn btn--primary" id="discover-yes"><i class="fas fa-check"></i> Yes</button>
+                        </div>
+                        <div class="discover-status" id="discover-status"></div>
                     </div>
                 </div>
 
