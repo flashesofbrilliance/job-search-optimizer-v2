@@ -288,6 +288,9 @@ const selectedYesReasons = new Set();
 const selectedNoReasons = new Set();
 const discoveryHistory = [];
 
+// Analytics settings
+let segmentMinN = 5; // default minimum sample size for segments
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
   initializeApp();
@@ -298,6 +301,7 @@ function initializeApp() {
   loadDataFromStorage();
   loadLensStateFromStorage();
   loadKanbanSortFromStorage();
+  loadAnalyticsSettingsFromStorage();
   
   // Initialize filtered jobs
   filteredJobs = jobsData.filter(job => !job.isArchived);
@@ -311,6 +315,7 @@ function initializeApp() {
   renderCurrentView();
   updateLensIndicator();
   updateKanbanSortUI();
+  bindAnalyticsControls();
   
   // Initialize master activity log
   initializeMasterActivityLog();
@@ -421,6 +426,29 @@ function bindEventListeners() {
       try { undoDiscover(); } catch (err) { console.error(err); }
     }
   });
+}
+
+function bindAnalyticsControls() {
+  const minInput = document.getElementById('segment-min-n');
+  if (minInput) {
+    minInput.value = String(segmentMinN);
+    minInput.addEventListener('change', () => {
+      const n = parseInt(minInput.value) || 5;
+      segmentMinN = Math.max(1, Math.min(100, n));
+      saveAnalyticsSettingsToStorage();
+      if (currentView === 'analytics') renderAnalyticsView();
+    });
+  }
+}
+
+function saveAnalyticsSettingsToStorage() {
+  try { localStorage.setItem('analyticsSettings', JSON.stringify({ segmentMinN })); } catch (e) { console.warn('save analytics settings failed'); }
+}
+function loadAnalyticsSettingsFromStorage() {
+  try {
+    const s = JSON.parse(localStorage.getItem('analyticsSettings') || '{}');
+    if (s && typeof s.segmentMinN === 'number') segmentMinN = s.segmentMinN;
+  } catch (e) { /* noop */ }
 }
 
 function bindKanbanSort() {
@@ -2080,11 +2108,11 @@ function renderSegmentStats() {
   }
   // Summary: top segment with 99% CI
   const top = stats[0];
-  if (summaryEl) summaryEl.textContent = `${top.name}: ${(top.rate*100).toFixed(0)}% (n=${top.n}, 99% CI ${(top.ci.lo*100).toFixed(0)}–${(top.ci.hi*100).toFixed(0)}%)`;
+  if (summaryEl) summaryEl.textContent = `${top.name}: ${(top.rate*100).toFixed(0)}% (n=${top.n}, 99% CI ${(top.ci.lo*100).toFixed(0)}–${(top.ci.hi*100).toFixed(0)}%, Δ WoW ${(top.deltaWoW*100).toFixed(0)}%)`;
   container.innerHTML = stats.map(seg => `
-    <div class="segment-stat" title="n=${seg.n}\nyes=${seg.yes} no=${seg.no}\nrate=${(seg.rate*100).toFixed(0)}%\n99% CI ${(seg.ci.lo*100).toFixed(0)}–${(seg.ci.hi*100).toFixed(0)}%">
+    <div class="segment-stat" title="n=${seg.n}\nyes=${seg.yes} no=${seg.no}\nrate=${(seg.rate*100).toFixed(0)}%\n99% CI ${(seg.ci.lo*100).toFixed(0)}–${(seg.ci.hi*100).toFixed(0)}%\nWoW: ${(seg.currRate*100).toFixed(0)}% (n=${seg.currN}) vs ${(seg.prevRate*100).toFixed(0)}% (n=${seg.prevN})\nΔ ${(seg.deltaWoW*100).toFixed(0)}%">
       <span class="segment-name">${seg.name} (n=${seg.n})</span>
-      <span class="segment-score">${(seg.rate*100).toFixed(0)}%</span>
+      <span class="segment-score">${(seg.rate*100).toFixed(0)}% <small style="color: var(--color-text-secondary);">(Δ ${(seg.deltaWoW*100).toFixed(0)}%)</small></span>
     </div>
   `).join('');
 }
@@ -2093,6 +2121,11 @@ function computeSegmentStatsFromFeedback() {
   const events = JSON.parse(localStorage.getItem('discoveryFeedback') || '[]');
   if (!Array.isArray(events) || events.length === 0) return [];
   const bySeg = {};
+  // WoW windows (last 7 days, prior 7 days)
+  const now = Date.now();
+  const msDay = 24*60*60*1000;
+  const currStart = now - 7*msDay;
+  const prevStart = now - 14*msDay;
   const idToJob = new Map(jobsData.map(j => [j.id, j]));
   events.forEach(evt => {
     if (!evt || !evt.data) return;
@@ -2100,10 +2133,16 @@ function computeSegmentStatsFromFeedback() {
     if (label === null || label === undefined) return;
     const job = idToJob.get(job_id);
     if (!job) return;
+    const t = Date.parse(evt.time || '') || 0;
     const segKeys = deriveSegments(job);
     segKeys.forEach(key => {
-      if (!bySeg[key]) bySeg[key] = { yes: 0, no: 0 };
+      if (!bySeg[key]) bySeg[key] = { yes: 0, no: 0, cYes:0, cNo:0, pYes:0, pNo:0 };
       if (label === 1) bySeg[key].yes++; else bySeg[key].no++;
+      if (t >= currStart) {
+        if (label === 1) bySeg[key].cYes++; else bySeg[key].cNo++;
+      } else if (t >= prevStart && t < currStart) {
+        if (label === 1) bySeg[key].pYes++; else bySeg[key].pNo++;
+      }
     });
   });
   // build array
@@ -2112,8 +2151,13 @@ function computeSegmentStatsFromFeedback() {
     const n = v.yes + v.no;
     const rate = n > 0 ? v.yes / n : 0;
     const ci = wilson(rate, n, z);
-    return { name, yes: v.yes, no: v.no, n, rate, ci };
-  }).filter(x => x.n >= 5) // min sample size
+    const currN = v.cYes + v.cNo;
+    const prevN = v.pYes + v.pNo;
+    const currRate = currN > 0 ? v.cYes / currN : 0;
+    const prevRate = prevN > 0 ? v.pYes / prevN : 0;
+    const deltaWoW = currRate - prevRate;
+    return { name, yes: v.yes, no: v.no, n, rate, ci, currRate, prevRate, currN, prevN, deltaWoW };
+  }).filter(x => x.n >= (segmentMinN || 5))
     .sort((a,b) => b.rate - a.rate)
     .slice(0, 8);
   return arr;
