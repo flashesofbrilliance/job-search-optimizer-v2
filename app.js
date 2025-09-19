@@ -1295,6 +1295,11 @@ function createKanbanCard(job) {
   card.className = 'kanban-card';
   card.dataset.jobId = job.id;
   card.draggable = true;
+  // Lens highlight for highlight-mode lenses
+  const lens = getActiveLens();
+  if (lens && lens.mode === 'highlight' && matchesLens(job, lens)) {
+    card.classList.add('lens-hit');
+  }
   
   card.innerHTML = `
     <div class="kanban-card-header">
