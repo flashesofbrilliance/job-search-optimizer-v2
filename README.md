@@ -71,3 +71,9 @@ Notes:
 ## Validated Learning Prompt
 
 An open-source prompt template for iterative strategy and pacing lives at `prompts/validated-learning.md`. Use it with CSV exports to learn segment performance and compute the weekly applications needed to reach, for example, 5 offers in 6 weeks.
+
+## Lenses (Patterns & Bias)
+
+- Presets: Pattern (Top-fit AI/Crypto), Platform (Greenhouse/Lever), Bias (NYC/Onsite highlight), Pacing (This Week), and Custom (JSON).
+- Modes: filter (narrows list) or highlight (visual emphasis without filtering).
+- Fields supported in Custom: company, roleTitle, jobUrl, jobDomain, tags, location, status, fitScore, vibe, salary.

@@ -257,6 +257,11 @@ const lensPresets = [
     exclude: [{ field: 'status', equals: 'rejected' }]
   },
   {
+    id: 'pacing', name: 'Pacing: This Week', mode: 'filter',
+    include: [],
+    exclude: []
+  },
+  {
     id: 'bias', name: 'Bias: NYC/Onsite', mode: 'highlight', color: '#EAB308',
     include: [{ any: [ { field: 'location', matches: 'NYC|New York' }, { field: 'tags', includesAny: ['Onsite'] } ] }],
     exclude: []
@@ -1314,6 +1319,11 @@ function createKanbanCard(job) {
       <span class="kanban-card-location">${job.location}</span>
       <span class="kanban-card-salary">${job.salary.split(' ')[0]}</span>
     </div>
+    <div class="kanban-card-actions">
+      <a href="${normalizeUrl(job.jobUrl)}" class="kanban-link" target="_blank" title="Open job posting" aria-label="Open job posting">
+        <i class="fas fa-external-link-alt"></i>
+      </a>
+    </div>
   `;
   
   // Add event listeners
@@ -1323,6 +1333,9 @@ function createKanbanCard(job) {
     e.preventDefault();
     viewJobDetails(job.id);
   });
+  // Prevent card click when clicking link
+  const link = card.querySelector('.kanban-link');
+  if (link) link.addEventListener('click', (e) => { e.stopPropagation(); });
   
   return card;
 }
@@ -1861,8 +1874,21 @@ function applyAllFilters() {
 // Lens logic
 function getActiveLens() {
   if (activeLensId === 'custom') return customLens;
+  if (activeLensId === 'pacing') return buildPacingLens();
   if (activeLensId === 'none') return null;
   return lensPresets.find(l => l.id === activeLensId) || null;
+}
+
+function buildPacingLens() {
+  // Focus on statuses that move the funnel this week and solid fits
+  const minFit = Math.max(0, Math.min(10, goals?.offerRate >= 25 ? 8.0 : 7.5));
+  return {
+    id: 'pacing', name: 'Pacing: This Week', mode: 'filter',
+    include: [
+      { all: [ { field: 'status', in: ['not-started','research','applied'] }, { field: 'fitScore', gte: minFit } ] }
+    ],
+    exclude: [ { field: 'status', equals: 'rejected' } ]
+  };
 }
 
 function matchesLens(job, lens) {
