@@ -1240,7 +1240,7 @@ function createTableRow(job) {
       <input type="checkbox" ${isSelected ? 'checked' : ''}>
     </td>
     <td class="company-cell">
-      ${shouldShowLensDot(job) ? `<span class=\"lens-dot\" style=\"background-color:${getActiveLensColor()}\"></span>` : ''}
+      ${shouldShowLensDot(job) ? `<span class="lens-dot" style="background-color:${getActiveLensColor()}"></span>` : ''}
       <a href="${job.jobUrl}" target="_blank">${job.company}</a>
     </td>
     <td class="role-cell">
@@ -1384,7 +1384,7 @@ function createKanbanCard(job) {
   
   card.innerHTML = `
     <div class="kanban-card-header">
-      <span class="kanban-card-company">${shouldShowLensDot(job) ? `<span class=\"lens-dot\" style=\"background-color:${getActiveLensColor()}\"></span>` : ''}${job.company}</span>
+      <span class="kanban-card-company">${shouldShowLensDot(job) ? `<span class="lens-dot" style="background-color:${getActiveLensColor()}"></span>` : ''}${job.company}</span>
       <div class="kanban-card-fit">
         <span class="fit-score-value ${getFitScoreClass(job.fitScore)}">${job.fitScore}</span>
         <span class="vibe-indicator">${job.vibe}</span>
