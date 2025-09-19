@@ -81,6 +81,36 @@ Notes:
 - Hard refresh or use a private window to avoid cache after deploy.
 - Validate core flows: Lenses summary/tooltip, Discover (Yes/No/Skip, Undo, Explore slider), Suggestion banner, Dashboard (Milestones, Pace bars, Coaching), Needs Review filter, Export Bundle + Validation Report.
 
+## Multi‑Environment Deploys
+
+- Pages settings: set Pages to "Deploy from a branch" → `gh-pages` → `/ (root)`.
+- Env paths (published by CI under `gh-pages`):
+  - Dev latest: `/env/dev/latest/` (feature branches `feat/*`)
+  - QA latest: `/env/qa/latest/` (branches `qa/*` and `main` builds)
+  - Stage latest: `/env/stage/latest/` (release candidates `v*.*.*-rc.*`)
+  - Prod latest: `/env/prod/latest/` (release tags `v*.*.*`)
+
+Example URLs:
+```
+https://<org>.github.io/<repo>/env/dev/latest/
+https://<org>.github.io/<repo>/env/qa/latest/
+https://<org>.github.io/<repo>/env/stage/latest/
+https://<org>.github.io/<repo>/env/prod/latest/
+```
+
+Each build includes `_provenance.json` (SHA256 hashes and commit SHA) for provability.
+
+## Promote Between Environments (Provable)
+
+- Actions → "Promote Artifact (env -> env)" → Run workflow with inputs:
+  - `source_path`: e.g., `env/qa/latest` or `env/qa/main-<sha>`
+  - `target_env`: one of dev/qa/stage/prod
+  - `target_name` (optional): default derives from source
+- Gates enforced:
+  - Fails if open issues labeled `blocker` or `ac-fail` exist
+  - Verifies `_provenance.json` file hashes match the copied artifact (0% error, deterministic)
+- On success: publishes to `env/<target>/<target_name>` and updates `env/<target>/latest`.
+
 ## Validated Learning Prompt
 
 An open-source prompt template for iterative strategy and pacing lives at `prompts/validated-learning.md`. Use it with CSV exports to learn segment performance and compute the weekly applications needed to reach, for example, 5 offers in 6 weeks.

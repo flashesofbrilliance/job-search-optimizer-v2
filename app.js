@@ -430,6 +430,19 @@ function bindEventListeners() {
   // Kanban sort control
   bindKanbanSort();
 
+  // Pipeline: Needs Review shortcut
+  const reviewShortcut = document.getElementById('pipeline-review-shortcut');
+  if (reviewShortcut) {
+    reviewShortcut.addEventListener('click', (e) => {
+      e.preventDefault();
+      currentFilters.needsReview = true;
+      updateFilterIndicator();
+      switchView('table');
+      applyAllFilters();
+      showToast('Showing Needs Review list', 'info');
+    });
+  }
+
   // Discover keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     if (currentView !== 'discover') return;
@@ -1331,6 +1344,7 @@ function switchView(view) {
   // Home shows no explicit view-content; keep dashboard visible
   const dash = document.querySelector('.dashboard-section');
   if (dash) dash.style.display = (view === 'home') ? '' : 'none';
+  show('table-view', view === 'table');
   show('discover-view', view === 'triage');
   show('kanban-view', view === 'pipeline');
   show('analytics-view', view === 'insights');
