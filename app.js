@@ -498,7 +498,7 @@ function updateDiscoverHUD() {
 }
 
 function saveDiscoverSettingsToStorage() {
-  try { localStorage.setItem('discoverSettings', JSON.stringify({ discoverExplorePct, discoverAutoAccept, discoverFitMin })); } catch (e) {}
+  try { localStorage.setItem('discoverSettings', JSON.stringify({ discoverExplorePct, discoverAutoAccept, discoverFitMin })); } catch (e) { /* no-op */ }
 }
 function loadDiscoverSettingsFromStorage() {
   try {
@@ -508,7 +508,7 @@ function loadDiscoverSettingsFromStorage() {
       if (typeof s.discoverAutoAccept === 'boolean') discoverAutoAccept = s.discoverAutoAccept;
       if (typeof s.discoverFitMin === 'number') discoverFitMin = s.discoverFitMin;
     }
-  } catch (e) {}
+  } catch (e) { /* no-op */ }
 }
 
 function bindKanbanSort() {
