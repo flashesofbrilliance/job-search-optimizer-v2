@@ -2609,7 +2609,7 @@ async function handleExportBundle() {
         files.push({ name: s.name, data: new Blob([txt], { type: 'application/json' }) });
       }
     }
-  } catch (_) {}
+  } catch (err) { console.warn('Including schemas failed', err); }
   // Data files
   const jobsCsv = exportToCSV(allJobs);
   files.push({ name: 'jobs.csv', data: new Blob([jobsCsv], { type: 'text/csv' }) });
