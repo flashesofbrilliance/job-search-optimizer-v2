@@ -286,6 +286,7 @@ const YES_REASONS = ['great_fit','domain_match','remote_ok','comp_band','impact_
 const NO_REASONS = ['level_mismatch','onsite_only','domain_misfit','comp_low','legacy_stack','too_early_late'];
 const selectedYesReasons = new Set();
 const selectedNoReasons = new Set();
+const discoveryHistory = [];
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -1269,6 +1270,8 @@ function renderDiscoverView() {
   if (btnYes) btnYes.onclick = () => handleDiscoverLabel(1, job);
   if (btnNo) btnNo.onclick = () => handleDiscoverLabel(0, job);
   if (btnSkip) btnSkip.onclick = () => handleDiscoverLabel(null, job);
+  const btnUndo = document.getElementById('discover-undo');
+  if (btnUndo) btnUndo.onclick = () => undoDiscover();
 }
 
 function renderReasonChips(containerId, opts, selectedSet) {
@@ -1292,14 +1295,17 @@ function handleDiscoverLabel(label, job) {
   // capture reasons
   const reasons = label === 1 ? Array.from(selectedYesReasons) : label === 0 ? Array.from(selectedNoReasons) : [];
   // feedback event
-  logDiscoveryFeedback(job, label, reasons);
+  const evt = logDiscoveryFeedback(job, label, reasons);
   // model update + fit recompute
   try {
+    const prevModel = getModelState();
     const features = extractFeatures(job);
     updateModelWithFeedback(label, features, reasons);
     const newFit = computeFit(features);
+    const prevFit = job.fitScore;
     job.fitScore = parseFloat(newFit.toFixed(1));
     job.fit = { score: job.fitScore, conf: (job.fit?.conf || 0.5), model_version: 'v0.2.1' };
+    discoveryHistory.push({ jobId: job.id, label, reasons, evtId: evt?.id, prevModel, prevFit, index: discoveryIndex });
   } catch (e) { console.warn('model update failed', e); }
   // advance
   selectedYesReasons.clear();
@@ -1326,6 +1332,7 @@ function logDiscoveryFeedback(job, label, reasons) {
   };
   arr.push(evt);
   localStorage.setItem('discoveryFeedback', JSON.stringify(arr));
+  return evt;
 }
 
 // Simple online model (logistic)
@@ -2542,6 +2549,13 @@ async function handleExportBundle() {
   const valid = validateJobsForExport(jobsData);
   const allJobs = valid.jobs;
   const files = [];
+  // Strict validation with Ajv, if available
+  let ajvReport = null;
+  try {
+    if (typeof Ajv !== 'undefined') {
+      ajvReport = await validateWithAjv(allJobs);
+    }
+  } catch (e) { console.warn('Ajv validation failed', e); }
   // schema files (for reproducibility)
   try {
     const schemas = [
@@ -2585,6 +2599,18 @@ async function handleExportBundle() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `jso_export_${Date.now()}.zip`; a.click();
+  if (ajvReport) {
+    const { jobsErrors, feedbackErrors } = ajvReport;
+    if (jobsErrors || feedbackErrors) {
+      showToast(`Bundle exported with schema issues (jobs:${jobsErrors||0}, feedback:${feedbackErrors||0})`, 'error');
+    } else {
+      showToast('Bundle exported (schemas valid)', 'success');
+    }
+  } else if (valid.invalidCount > 0) {
+    showToast(`Bundle exported with ${valid.invalidCount} invalid records skipped`, 'error');
+  } else {
+    showToast('Bundle exported', 'success');
+  }
 }
 
 async function buildChecksums(files) {
@@ -2596,6 +2622,29 @@ async function buildChecksums(files) {
     lines.push(`SHA256  ${hex}  ${f.name}`);
   }
   return lines.join('\n');
+}
+
+async function validateWithAjv(jobs) {
+  const ajv = new Ajv({ allErrors: true, strict: false });
+  const load = async (p) => { try { const r = await fetch(p); return r.ok ? await r.json() : null; } catch { return null; } };
+  const jobsSchema = await load('schemas/jobs.v1.schema.json');
+  const fbSchema = await load('schemas/feedback.v1.schema.json');
+  const valJobs = jobsSchema ? ajv.compile(jobsSchema) : null;
+  const valFb = fbSchema ? ajv.compile(fbSchema) : null;
+  let jobsErrors = 0, feedbackErrors = 0;
+  if (valJobs) {
+    for (const j of jobs) {
+      const rec = toJobsV1Record(j);
+      if (!valJobs(rec)) jobsErrors++;
+    }
+  }
+  if (valFb) {
+    const events = (JSON.parse(localStorage.getItem('discoveryFeedback') || '[]') || []);
+    for (const e of events) {
+      if (!valFb(e)) feedbackErrors++;
+    }
+  }
+  return { jobsErrors, feedbackErrors };
 }
 
 // Dashboard and Utility Functions
