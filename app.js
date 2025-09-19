@@ -249,6 +249,12 @@ let goals = {
   startDate: "2025-09-18"
 };
 let masterActivityLog = [];
+// Meta filter configuration (patterns / anti-patterns)
+let metaFilters = {
+  enabled: false,
+  include: [],
+  exclude: []
+};
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -258,6 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeApp() {
   // Load data from localStorage if available
   loadDataFromStorage();
+  loadMetaFiltersFromStorage();
   
   // Initialize filtered jobs
   filteredJobs = jobsData.filter(job => !job.isArchived);
@@ -269,6 +276,7 @@ function initializeApp() {
   renderDashboard();
   renderGoalsSection();
   renderCurrentView();
+  updateMetaFilterIndicator();
   
   // Initialize master activity log
   initializeMasterActivityLog();
@@ -283,6 +291,7 @@ function saveDataToStorage() {
     localStorage.setItem('jobSearchFilters', JSON.stringify(currentFilters));
     localStorage.setItem('jobSearchGoals', JSON.stringify(goals));
     localStorage.setItem('masterActivityLog', JSON.stringify(masterActivityLog));
+    localStorage.setItem('metaFiltersConfig', JSON.stringify(metaFilters));
     console.log('Data saved to localStorage');
   } catch (error) {
     console.error('Failed to save data to localStorage:', error);
@@ -318,6 +327,20 @@ function loadDataFromStorage() {
     }
   } catch (error) {
     console.error('Failed to load data from localStorage:', error);
+  }
+}
+
+function loadMetaFiltersFromStorage() {
+  try {
+    const saved = localStorage.getItem('metaFiltersConfig');
+    if (saved) {
+      const cfg = JSON.parse(saved);
+      if (cfg && typeof cfg === 'object') {
+        metaFilters = { enabled: !!cfg.enabled, include: cfg.include || [], exclude: cfg.exclude || [] };
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load meta filters:', e);
   }
 }
 
@@ -410,6 +433,15 @@ function bindSearchAndFilters() {
     filterBtn.addEventListener('click', (e) => {
       e.preventDefault();
       toggleFilters();
+    });
+  }
+  
+  // Meta filter open
+  const metaBtn = document.getElementById('meta-filter-btn');
+  if (metaBtn) {
+    metaBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openMetaFilterModal();
     });
   }
   
@@ -736,6 +768,12 @@ function updateGoalsCalculation() {
       • Expect <strong>${interviewsNeeded} interviews</strong> to achieve <strong>${targetOffers} offers</strong>
     `;
   }
+  
+  // Meta filter modal
+  const metaSave = document.getElementById('meta-filter-save');
+  if (metaSave) metaSave.addEventListener('click', saveMetaFilters);
+  const metaCancel = document.getElementById('meta-filter-cancel');
+  if (metaCancel) metaCancel.addEventListener('click', closeModals);
 }
 
 function saveGoals() {
@@ -1790,7 +1828,114 @@ function applyAllFilters() {
     return true;
   });
   
+  // Apply meta filters if enabled
+  if (metaFilters.enabled) {
+    filteredJobs = filteredJobs.filter(job => matchesMetaFilters(job, metaFilters));
+  }
+  
   renderCurrentView();
+}
+
+// Meta filter logic
+function matchesMetaFilters(job, cfg) {
+  if (cfg.include && cfg.include.length > 0) {
+    const anyInclude = cfg.include.some(rule => evalRule(job, rule));
+    if (!anyInclude) return false;
+  }
+  if (cfg.exclude && cfg.exclude.length > 0) {
+    const anyExclude = cfg.exclude.some(rule => evalRule(job, rule));
+    if (anyExclude) return false;
+  }
+  return true;
+}
+
+function evalRule(job, rule) {
+  if (!rule) return true;
+  if (Array.isArray(rule.all)) return rule.all.every(r => evalRule(job, r));
+  if (Array.isArray(rule.any)) return rule.any.some(r => evalRule(job, r));
+  if (rule.not) return !evalRule(job, rule.not);
+  const field = rule.field;
+  let value = getFieldValue(job, field);
+  if (field === 'jobUrl' || field === 'jobDomain') {
+    if (field === 'jobDomain') value = getJobDomain(job.jobUrl);
+  }
+  return compareValue(value, rule);
+}
+
+function getFieldValue(job, field) {
+  if (!field) return undefined;
+  if (field === 'jobDomain') return getJobDomain(job.jobUrl);
+  return job[field];
+}
+
+function getJobDomain(url) {
+  try {
+    const u = new URL(normalizeUrl(url || ''));
+    return u.hostname.replace(/^www\./, '');
+  } catch (_) { return ''; }
+}
+
+function compareValue(v, rule) {
+  if (rule.equals !== undefined) return toStr(v) === toStr(rule.equals);
+  if (Array.isArray(rule.in)) return rule.in.map(toStr).includes(toStr(v));
+  if (rule.includes !== undefined) return toStr(v).includes(toStr(rule.includes));
+  if (Array.isArray(rule.includesAny)) {
+    const arr = Array.isArray(v) ? v.map(toStr) : toStr(v).split(/\s*[;,]\s*|\s+/).filter(Boolean);
+    return rule.includesAny.map(toStr).some(x => arr.includes(x));
+  }
+  if (rule.gte !== undefined) return toNum(v) >= Number(rule.gte);
+  if (rule.lte !== undefined) return toNum(v) <= Number(rule.lte);
+  if (rule.matches) {
+    try { return new RegExp(rule.matches, 'i').test(toStr(v)); } catch (_) { return false; }
+  }
+  return true;
+}
+
+function toStr(x) { return (x ?? '').toString().toLowerCase(); }
+function toNum(x) { const n = parseFloat(x); return isNaN(n) ? 0 : n; }
+
+// Meta filter UI
+function openMetaFilterModal() {
+  const modal = document.getElementById('meta-filter-modal');
+  const enabled = document.getElementById('meta-filter-enabled');
+  const textarea = document.getElementById('meta-filter-json');
+  if (!modal || !enabled || !textarea) return;
+  enabled.checked = !!metaFilters.enabled;
+  textarea.value = JSON.stringify(metaFilters, null, 2);
+  modal.classList.remove('hidden');
+}
+
+function saveMetaFilters() {
+  const enabled = document.getElementById('meta-filter-enabled');
+  const textarea = document.getElementById('meta-filter-json');
+  try {
+    const cfg = JSON.parse(textarea.value || '{}');
+    metaFilters = {
+      enabled: enabled?.checked || !!cfg.enabled,
+      include: Array.isArray(cfg.include) ? cfg.include : [],
+      exclude: Array.isArray(cfg.exclude) ? cfg.exclude : []
+    };
+    localStorage.setItem('metaFiltersConfig', JSON.stringify(metaFilters));
+    updateMetaFilterIndicator();
+    applyAllFilters();
+    closeModals();
+    showToast('Meta filter saved', 'success');
+  } catch (e) {
+    console.error('Invalid meta filter JSON', e);
+    showToast('Invalid meta filter JSON', 'error');
+  }
+}
+
+function updateMetaFilterIndicator() {
+  const badge = document.getElementById('meta-filter-indicator');
+  if (!badge) return;
+  const count = (metaFilters.include?.length || 0) + (metaFilters.exclude?.length || 0);
+  if (metaFilters.enabled && count > 0) {
+    badge.textContent = count;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
 }
 
 function clearFilters() {
