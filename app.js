@@ -1317,6 +1317,27 @@ function handleDiscoverLabel(label, job) {
   renderDiscoverView();
 }
 
+function undoDiscover() {
+  const h = discoveryHistory.pop();
+  if (!h) { showToast('Nothing to undo', 'error'); return; }
+  if (h.prevModel) saveModelState(h.prevModel);
+  const job = jobsData.find(j => j.id === h.jobId);
+  if (job && typeof h.prevFit === 'number') job.fitScore = h.prevFit;
+  if (job && !discoveryQueue.find(j => j.id === h.jobId)) {
+    discoveryQueue.splice(Math.min(h.index || 0, discoveryQueue.length), 0, job);
+  }
+  if (h.evtId) {
+    const arr = JSON.parse(localStorage.getItem('discoveryFeedback') || '[]');
+    const idx = arr.findIndex(e => e && e.id === h.evtId);
+    if (idx >= 0) { arr.splice(idx,1); localStorage.setItem('discoveryFeedback', JSON.stringify(arr)); }
+  }
+  saveDataToStorage();
+  renderDashboard();
+  applyAllFilters();
+  renderDiscoverView();
+  showToast('Undone', 'success');
+}
+
 function logDiscoveryFeedback(job, label, reasons) {
   const arr = JSON.parse(localStorage.getItem('discoveryFeedback') || '[]');
   const evt = {
