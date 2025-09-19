@@ -1159,6 +1159,9 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
 .kanban-card-actions .kanban-link { color: var(--color-primary); text-decoration: none; font-size: 14px; }
 .kanban-card-actions .kanban-link:hover { color: var(--color-primary-hover); }
 
+/* Lens indicator dot */
+.lens-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
+
 /* Filters Panel */
 .filters-panel {
   background-color: var(--color-surface);

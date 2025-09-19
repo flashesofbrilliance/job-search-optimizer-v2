@@ -252,12 +252,12 @@ let masterActivityLog = [];
 // Lenses (patterns / biases)
 const lensPresets = [
   {
-    id: 'pattern', name: 'Pattern: Top-fit AI/Crypto', mode: 'filter',
+    id: 'pattern', name: 'Pattern: Top-fit AI/Crypto', mode: 'filter', color: '#3B82F6',
     include: [{ all: [ { field: 'fitScore', gte: 8.5 }, { field: 'tags', includesAny: ['AI','Crypto'] } ] }],
     exclude: [{ field: 'status', equals: 'rejected' }]
   },
   {
-    id: 'pacing', name: 'Pacing: This Week', mode: 'filter',
+    id: 'pacing', name: 'Pacing: This Week', mode: 'filter', color: '#6366F1',
     include: [],
     exclude: []
   },
@@ -267,7 +267,7 @@ const lensPresets = [
     exclude: []
   },
   {
-    id: 'platform', name: 'Platform: Greenhouse/Lever', mode: 'filter',
+    id: 'platform', name: 'Platform: Greenhouse/Lever', mode: 'filter', color: '#10B981',
     include: [{ any: [ { field: 'jobDomain', includes: 'greenhouse.io' }, { field: 'jobDomain', includes: 'lever.co' } ] }],
     exclude: []
   }
@@ -885,6 +885,8 @@ function renderGoalsSection() {
   // Update dashboard pacing-now card if present
   const pacingEl = document.getElementById('pacing-now');
   if (pacingEl) pacingEl.textContent = String(Math.max(recommendedThisWeek, 0));
+  const pacingWeekly = document.getElementById('pacing-weekly-target');
+  if (pacingWeekly) pacingWeekly.textContent = `Target: ${weeklyTarget}/wk`;
 }
 
 // Master Activity Log with Gamification
@@ -1238,6 +1240,7 @@ function createTableRow(job) {
       <input type="checkbox" ${isSelected ? 'checked' : ''}>
     </td>
     <td class="company-cell">
+      ${shouldShowLensDot(job) ? `<span class=\"lens-dot\" style=\"background-color:${getActiveLensColor()}\"></span>` : ''}
       <a href="${job.jobUrl}" target="_blank">${job.company}</a>
     </td>
     <td class="role-cell">
@@ -1381,7 +1384,7 @@ function createKanbanCard(job) {
   
   card.innerHTML = `
     <div class="kanban-card-header">
-      <span class="kanban-card-company">${job.company}</span>
+      <span class="kanban-card-company">${shouldShowLensDot(job) ? `<span class=\"lens-dot\" style=\"background-color:${getActiveLensColor()}\"></span>` : ''}${job.company}</span>
       <div class="kanban-card-fit">
         <span class="fit-score-value ${getFitScoreClass(job.fitScore)}">${job.fitScore}</span>
         <span class="vibe-indicator">${job.vibe}</span>
@@ -1957,12 +1960,17 @@ function buildPacingLens() {
   // Focus on statuses that move the funnel this week and solid fits
   const minFit = Math.max(0, Math.min(10, goals?.offerRate >= 25 ? 8.0 : 7.5));
   return {
-    id: 'pacing', name: 'Pacing: This Week', mode: 'filter',
+    id: 'pacing', name: 'Pacing: This Week', mode: 'filter', color: '#6366F1',
     include: [
       { all: [ { field: 'status', in: ['not-started','research','applied'] }, { field: 'fitScore', gte: minFit } ] }
     ],
     exclude: [ { field: 'status', equals: 'rejected' } ]
   };
+}
+
+function getActiveLensColor() {
+  const lens = getActiveLens();
+  return lens?.color || getComputedStyle(document.documentElement).getPropertyValue('--color-primary') || '#2b6cb0';
 }
 
 function matchesLens(job, lens) {
@@ -2075,6 +2083,13 @@ function updateLensIndicator() {
     }
   }
   badge.classList.add('hidden');
+}
+
+function shouldShowLensDot(job) {
+  const lens = getActiveLens();
+  if (!lens) return false;
+  // Always mark matches in highlight mode; in filter mode, everything shown matches, so still show dot
+  return matchesLens(job, lens);
 }
 
 function savePromptLens() {
