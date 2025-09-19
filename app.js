@@ -1628,8 +1628,10 @@ function createKanbanCard(job) {
   if (lens && lens.mode === 'highlight' && matchesLens(job, lens)) {
     card.classList.add('lens-hit');
   }
+  const fitClass = getFitScoreClass(job.fitScore);
   
   card.innerHTML = `
+    <div class="fit-band ${fitClass}"></div>
     <div class="kanban-card-header">
       <span class="kanban-card-company">${shouldShowLensDot(job) ? `<span class="lens-dot" style="background-color:${getActiveLensColor()}"></span>` : ''}${job.company}</span>
       <div class="kanban-card-fit">
@@ -2404,8 +2406,10 @@ function updateLensSummaryChip() {
   const chip = document.getElementById('lens-summary-chip');
   if (!chip) return;
   const lens = getActiveLens();
-  if (!lens) { chip.textContent = 'Lens: None'; return; }
-  chip.textContent = lensToSummary(lens);
+  if (!lens) { chip.textContent = 'Lens: None'; chip.title='No active lens'; return; }
+  const summary = lensToSummary(lens);
+  chip.textContent = summary;
+  chip.title = lensToTooltip(lens);
 }
 
 function lensToSummary(lens) {
@@ -2424,6 +2428,44 @@ function lensToSummary(lens) {
   const excl = collectIn(lens.exclude, 'status');
   if (excl.length) parts.push(`Excluding: ${excl.join(',')}`);
   return parts.join(' • ');
+}
+
+function lensToTooltip(lens) {
+  const lines = [];
+  lines.push(lens.name || 'Lens');
+  lines.push(lens.mode === 'highlight' ? 'Mode: highlight (visual only)' : 'Mode: filter');
+  lines.push('');
+  const inc = [];
+  (lens.include||[]).forEach(r => walkRule(r, (leaf) => {
+    if (leaf.field) {
+      const ops = [];
+      if (leaf.equals !== undefined) ops.push(`= ${leaf.equals}`);
+      if (leaf.in) ops.push(`in [${leaf.in.join(', ')}]`);
+      if (leaf.includes !== undefined) ops.push(`includes ${leaf.includes}`);
+      if (leaf.includesAny) ops.push(`includesAny [${leaf.includesAny.join(', ')}]`);
+      if (leaf.gte !== undefined) ops.push(`>= ${leaf.gte}`);
+      if (leaf.lte !== undefined) ops.push(`<= ${leaf.lte}`);
+      if (leaf.matches) ops.push(`~ /${leaf.matches}/i`);
+      inc.push(`• ${leaf.field} ${ops.join(' ')}`);
+    }
+  }));
+  if (inc.length) { lines.push('Include:'); lines.push(...inc); lines.push(''); }
+  const exc = [];
+  (lens.exclude||[]).forEach(r => walkRule(r, (leaf) => {
+    if (leaf.field) {
+      const ops = [];
+      if (leaf.equals !== undefined) ops.push(`= ${leaf.equals}`);
+      if (leaf.in) ops.push(`in [${leaf.in.join(', ')}]`);
+      if (leaf.includes !== undefined) ops.push(`includes ${leaf.includes}`);
+      if (leaf.includesAny) ops.push(`includesAny [${leaf.includesAny.join(', ')}]`);
+      if (leaf.gte !== undefined) ops.push(`>= ${leaf.gte}`);
+      if (leaf.lte !== undefined) ops.push(`<= ${leaf.lte}`);
+      if (leaf.matches) ops.push(`~ /${leaf.matches}/i`);
+      exc.push(`• ${leaf.field} ${ops.join(' ')}`);
+    }
+  }));
+  if (exc.length) { lines.push('Exclude:'); lines.push(...exc); }
+  return lines.join('\n');
 }
 
 function collectRuleValues(rules, field, op) {

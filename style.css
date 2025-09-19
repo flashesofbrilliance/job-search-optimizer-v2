@@ -1626,6 +1626,7 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
   cursor: grab;
   transition: all var(--duration-normal) var(--ease-standard);
   user-select: none;
+  position: relative;
 }
 
 .kanban-card:hover {
@@ -1674,6 +1675,13 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
 }
+
+/* Subtle fit band at top of card */
+.fit-band { position: absolute; left: 0; top: 0; height: 3px; width: 100%; border-top-left-radius: var(--radius-base); border-top-right-radius: var(--radius-base); }
+.fit-band.excellent { background: var(--color-success); }
+.fit-band.good { background: var(--color-warning); }
+.fit-band.fair { background: var(--color-info); }
+.fit-band.poor { background: var(--color-error); }
 
 .kanban-card-salary {
   font-weight: var(--font-weight-medium);
