@@ -1136,6 +1136,16 @@ select.form-control {
   margin-left: var(--space-4);
 }
 
+.lens-summary-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; margin-left: 8px;
+  border: 1px dashed var(--color-card-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* Lenses UI: Snellen header + cards */
 .snellen { display: flex; gap: 12px; align-items: baseline; }
 .snellen-line { font-weight: 800; letter-spacing: 1px; line-height: 1; }

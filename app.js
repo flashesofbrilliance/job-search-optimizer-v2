@@ -513,6 +513,14 @@ function bindHeaderActions() {
       try { await handleExportBundle(); } catch (err) { console.error(err); showToast('Bundle export failed', 'error'); }
     });
   }
+  const openSchemaBtn = document.getElementById('open-schema-report-btn');
+  if (openSchemaBtn) {
+    openSchemaBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.__lastSchemaReport) showSchemaReport(window.__lastSchemaReport);
+      else showToast('No validation report yet', 'error');
+    });
+  }
 }
 
 function bindSearchAndFilters() {
@@ -2064,12 +2072,17 @@ function renderSegmentStats() {
   const container = document.getElementById('segment-stats');
   if (!container) return;
   const stats = computeSegmentStatsFromFeedback();
+  const summaryEl = document.getElementById('segment-summary');
   if (stats.length === 0) {
     container.innerHTML = '<div class="segment-stat">No discovery feedback yet. Use Discover to start training.</div>';
+    if (summaryEl) summaryEl.textContent = '';
     return;
   }
+  // Summary: top segment with 99% CI
+  const top = stats[0];
+  if (summaryEl) summaryEl.textContent = `${top.name}: ${(top.rate*100).toFixed(0)}% (n=${top.n}, 99% CI ${(top.ci.lo*100).toFixed(0)}–${(top.ci.hi*100).toFixed(0)}%)`;
   container.innerHTML = stats.map(seg => `
-    <div class="segment-stat" title="n=${seg.n}\nyes=${seg.yes} no=${seg.no}\nrate=${(seg.rate*100).toFixed(0)}%">
+    <div class="segment-stat" title="n=${seg.n}\nyes=${seg.yes} no=${seg.no}\nrate=${(seg.rate*100).toFixed(0)}%\n99% CI ${(seg.ci.lo*100).toFixed(0)}–${(seg.ci.hi*100).toFixed(0)}%">
       <span class="segment-name">${seg.name} (n=${seg.n})</span>
       <span class="segment-score">${(seg.rate*100).toFixed(0)}%</span>
     </div>
@@ -2094,14 +2107,29 @@ function computeSegmentStatsFromFeedback() {
     });
   });
   // build array
+  const z = 2.575829; // 99% CI
   const arr = Object.entries(bySeg).map(([name, v]) => {
     const n = v.yes + v.no;
     const rate = n > 0 ? v.yes / n : 0;
-    return { name, yes: v.yes, no: v.no, n, rate };
+    const ci = wilson(rate, n, z);
+    return { name, yes: v.yes, no: v.no, n, rate, ci };
   }).filter(x => x.n >= 5) // min sample size
     .sort((a,b) => b.rate - a.rate)
     .slice(0, 8);
   return arr;
+}
+
+function wilson(phat, n, z) {
+  if (n === 0) return { lo: 0, hi: 0 };
+  const z2 = z*z;
+  const denom = 1 + z2/n;
+  const center = phat + z2/(2*n);
+  const margin = z * Math.sqrt((phat*(1-phat)/n) + (z2/(4*n*n)));
+  let lo = (center - margin) / denom;
+  let hi = (center + margin) / denom;
+  lo = Math.max(0, Math.min(1, lo));
+  hi = Math.max(0, Math.min(1, hi));
+  return { lo, hi };
 }
 
 function deriveSegments(job) {
@@ -2319,10 +2347,71 @@ function updateLensIndicator() {
     if (count > 0) {
       badge.textContent = lens.name ? lens.name.split(':')[0] : String(count);
       badge.classList.remove('hidden');
+      // also update summary chip
+      updateLensSummaryChip();
       return;
     }
   }
   badge.classList.add('hidden');
+  updateLensSummaryChip();
+}
+
+function updateLensSummaryChip() {
+  const chip = document.getElementById('lens-summary-chip');
+  if (!chip) return;
+  const lens = getActiveLens();
+  if (!lens) { chip.textContent = 'Lens: None'; return; }
+  chip.textContent = lensToSummary(lens);
+}
+
+function lensToSummary(lens) {
+  const parts = [];
+  if (lens.name) parts.push(lens.name);
+  // include rules quick parse
+  const tags = collectRuleValues(lens.include, 'tags', 'includesAny');
+  if (tags.length) parts.push(`Tags: ${tags.join(',')}`);
+  const domains = collectRuleValues(lens.include, 'jobDomain', 'includes');
+  if (domains.length) parts.push(`Domain: ${domains.join('/')}`);
+  const fitMin = collectGte(lens.include, 'fitScore');
+  if (fitMin !== null) parts.push(`Fit ≥ ${fitMin}`);
+  const statuses = collectIn(lens.include, 'status');
+  if (statuses.length) parts.push(`Status: ${statuses.join(',')}`);
+  // excludes
+  const excl = collectIn(lens.exclude, 'status');
+  if (excl.length) parts.push(`Excluding: ${excl.join(',')}`);
+  return parts.join(' • ');
+}
+
+function collectRuleValues(rules, field, op) {
+  const out = new Set();
+  (rules||[]).forEach(r => walkRule(r, (leaf) => {
+    if (leaf.field === field && leaf[op] !== undefined) {
+      const v = Array.isArray(leaf[op]) ? leaf[op] : [leaf[op]];
+      v.forEach(x => out.add(String(x)));
+    }
+  }));
+  return Array.from(out);
+}
+function collectGte(rules, field) {
+  let min = null;
+  (rules||[]).forEach(r => walkRule(r, (leaf) => {
+    if (leaf.field === field && typeof leaf.gte === 'number') min = min === null ? leaf.gte : Math.max(min, leaf.gte);
+  }));
+  return min;
+}
+function collectIn(rules, field) {
+  const out = new Set();
+  (rules||[]).forEach(r => walkRule(r, (leaf) => {
+    if (leaf.field === field && Array.isArray(leaf.in)) leaf.in.forEach(v => out.add(String(v)));
+  }));
+  return Array.from(out);
+}
+function walkRule(rule, cb) {
+  if (!rule) return;
+  if (Array.isArray(rule.all)) return rule.all.forEach(x => walkRule(x, cb));
+  if (Array.isArray(rule.any)) return rule.any.forEach(x => walkRule(x, cb));
+  if (rule.not) return walkRule(rule.not, cb);
+  cb(rule);
 }
 
 function shouldShowLensDot(job) {
@@ -2591,6 +2680,7 @@ async function handleExportBundle() {
   try {
     if (typeof Ajv !== 'undefined') {
       ajvReport = await validateWithAjv(allJobs);
+      window.__lastSchemaReport = ajvReport;
     }
   } catch (e) { console.warn('Ajv validation failed', e); }
   // schema files (for reproducibility)
