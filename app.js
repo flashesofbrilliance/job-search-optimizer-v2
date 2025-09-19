@@ -2017,34 +2017,63 @@ function initializeActivityTrendChart() {
 }
 
 function renderSegmentStats() {
-  const segmentStats = {};
-  
-  jobsData.forEach(job => {
-    const sector = job.tags.find(tag => ['Crypto', 'AI', 'FinTech', 'DeFi'].includes(tag)) || 'Other';
-    if (!segmentStats[sector]) {
-      segmentStats[sector] = { total: 0, totalScore: 0 };
-    }
-    segmentStats[sector].total++;
-    segmentStats[sector].totalScore += job.fitScore;
-  });
-  
-  const sortedSegments = Object.entries(segmentStats)
-    .map(([name, data]) => ({
-      name,
-      avgScore: (data.totalScore / data.total).toFixed(1),
-      count: data.total
-    }))
-    .sort((a, b) => parseFloat(b.avgScore) - parseFloat(a.avgScore));
-  
   const container = document.getElementById('segment-stats');
   if (!container) return;
-  
-  container.innerHTML = sortedSegments.map(segment => `
-    <div class="segment-stat">
-      <span class="segment-name">${segment.name} (${segment.count})</span>
-      <span class="segment-score">${segment.avgScore}</span>
+  const stats = computeSegmentStatsFromFeedback();
+  if (stats.length === 0) {
+    container.innerHTML = '<div class="segment-stat">No discovery feedback yet. Use Discover to start training.</div>';
+    return;
+  }
+  container.innerHTML = stats.map(seg => `
+    <div class="segment-stat" title="n=${seg.n}\nyes=${seg.yes} no=${seg.no}\nrate=${(seg.rate*100).toFixed(0)}%">
+      <span class="segment-name">${seg.name} (n=${seg.n})</span>
+      <span class="segment-score">${(seg.rate*100).toFixed(0)}%</span>
     </div>
   `).join('');
+}
+
+function computeSegmentStatsFromFeedback() {
+  const events = JSON.parse(localStorage.getItem('discoveryFeedback') || '[]');
+  if (!Array.isArray(events) || events.length === 0) return [];
+  const bySeg = {};
+  const idToJob = new Map(jobsData.map(j => [j.id, j]));
+  events.forEach(evt => {
+    if (!evt || !evt.data) return;
+    const { job_id, label } = evt.data;
+    if (label === null || label === undefined) return;
+    const job = idToJob.get(job_id);
+    if (!job) return;
+    const segKeys = deriveSegments(job);
+    segKeys.forEach(key => {
+      if (!bySeg[key]) bySeg[key] = { yes: 0, no: 0 };
+      if (label === 1) bySeg[key].yes++; else bySeg[key].no++;
+    });
+  });
+  // build array
+  const arr = Object.entries(bySeg).map(([name, v]) => {
+    const n = v.yes + v.no;
+    const rate = n > 0 ? v.yes / n : 0;
+    return { name, yes: v.yes, no: v.no, n, rate };
+  }).filter(x => x.n >= 5) // min sample size
+    .sort((a,b) => b.rate - a.rate)
+    .slice(0, 8);
+  return arr;
+}
+
+function deriveSegments(job) {
+  const segs = [];
+  const tags = (job.tags || []).map(t => t.toString());
+  // sector tags
+  ['Crypto','AI','FinTech','DeFi'].forEach(t => { if (tags.includes(t)) segs.push(`Tag:${t}`); });
+  // domain
+  const domain = getJobDomain(job.jobUrl);
+  if (domain) segs.push(`Domain:${domain}`);
+  // level
+  const lvl = (job.roleTitle || '').split(' ')[0]; if (lvl) segs.push(`Level:${lvl}`);
+  // remote
+  const remote = (job.location||'').toLowerCase().includes('remote') || job.remote_policy==='remote';
+  segs.push(remote ? 'Policy:Remote' : 'Policy:Non-Remote');
+  return segs;
 }
 
 // Search and Filter Functions
@@ -2379,9 +2408,10 @@ function updateBulkActions() {
 
 // Export Functions
 function handleExport() {
-  const csvContent = exportToCSV(filteredJobs);
+  const valid = validateJobsForExport(filteredJobs);
+  const csvContent = exportToCSV(valid.jobs);
   downloadCSV(csvContent, 'job-search-data.csv');
-  showToast('Data exported successfully', 'success');
+  if (valid.invalidCount > 0) showToast(`Exported with ${valid.invalidCount} invalid records skipped`, 'error'); else showToast('Data exported successfully', 'success');
 }
 
 function exportToCSV(jobs) {
@@ -2432,6 +2462,18 @@ function downloadCSV(csvContent, filename) {
   link.click();
 }
 
+// Minimal schema validation (client-side, no external deps)
+function validateJobsForExport(jobs) {
+  const out = []; let invalid = 0;
+  for (const j of jobs) {
+    if (!j) { invalid++; continue; }
+    const hasReq = j.id && j.company && j.roleTitle && j.jobUrl && j.status;
+    let urlOk = true; try { if (j.jobUrl) new URL(normalizeUrl(j.jobUrl)); } catch { urlOk = false; }
+    if (hasReq && urlOk) out.push(j); else invalid++;
+  }
+  return { jobs: out, invalidCount: invalid };
+}
+
 // JSONL exporters
 function exportJobsJSONL(jobs) {
   const lines = jobs.map(j => JSON.stringify(toJobsV1Record(j)));
@@ -2467,7 +2509,14 @@ function toJobsV1Record(job) {
 
 function exportFeedbackJSONL() {
   const events = JSON.parse(localStorage.getItem('discoveryFeedback') || '[]');
-  return events.map(e => JSON.stringify(e)).join('\n');
+  // minimal validation of CloudEvents shape
+  const lines = [];
+  events.forEach(e => {
+    if (!e || !e.data) return;
+    if (!('job_id' in e.data)) return;
+    lines.push(JSON.stringify(e));
+  });
+  return lines.join('\n');
 }
 
 function exportLensesJSON() {
@@ -2490,8 +2539,26 @@ function exportModelJSON() {
 async function handleExportBundle() {
   if (typeof JSZip === 'undefined') { showToast('JSZip not loaded', 'error'); return; }
   const zip = new JSZip();
-  const allJobs = jobsData.slice();
+  const valid = validateJobsForExport(jobsData);
+  const allJobs = valid.jobs;
   const files = [];
+  // schema files (for reproducibility)
+  try {
+    const schemas = [
+      { name: 'schemas/jobs.v1.schema.json', path: 'schemas/jobs.v1.schema.json' },
+      { name: 'schemas/feedback.v1.schema.json', path: 'schemas/feedback.v1.schema.json' },
+      { name: 'schemas/lens.v1.schema.json', path: 'schemas/lens.v1.schema.json' },
+      { name: 'schemas/model.v1.schema.json', path: 'schemas/model.v1.schema.json' }
+    ];
+    for (const s of schemas) {
+      // Fetch schema text from the app assets if available
+      const res = await fetch(s.path).catch(() => null);
+      if (res && res.ok) {
+        const txt = await res.text();
+        files.push({ name: s.name, data: new Blob([txt], { type: 'application/json' }) });
+      }
+    }
+  } catch (_) {}
   // Data files
   const jobsCsv = exportToCSV(allJobs);
   files.push({ name: 'jobs.csv', data: new Blob([jobsCsv], { type: 'text/csv' }) });
