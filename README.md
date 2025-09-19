@@ -65,13 +65,21 @@ Notes:
 
 ## Deployment Status
 
-- Live (branch-based) URL: https://flashesofbrilliance.github.io/job-search-optimizer-v2/
-- GitHub Actions workflow: `.github/workflows/deploy.yml` (builds `dist/` and deploys via actions/deploy-pages)
+- Live URL: https://flashesofbrilliance.github.io/job-search-optimizer-v2/
+- Deploy workflow: `.github/workflows/deploy.yml` (builds `dist/` and deploys via actions/deploy-pages)
+- Status badges:
+  - [![Deploy to GitHub Pages](https://github.com/flashesofbrilliance/job-search-optimizer-v2/actions/workflows/deploy.yml/badge.svg)](https://github.com/flashesofbrilliance/job-search-optimizer-v2/actions/workflows/deploy.yml)
+  - [Open Actions runs](https://github.com/flashesofbrilliance/job-search-optimizer-v2/actions)
 
 ### Live Demo
 
-[![GitHub Pages](https://img.shields.io/badge/Live-Demo-2ea44f?logo=github&logoColor=white)](https://flashesofbrilliance.github.io/job-search-optimizer-v2/)
-[Open the app](https://flashesofbrilliance.github.io/job-search-optimizer-v2/) and try Lenses (Pattern, Pacing, Bias, Platform) and the new Pacing Now dashboard card.
+[![GitHub Pages](https://img.shields.io/badge/FTL-Live_Demo-2ea44f?logo=github&logoColor=white)](https://flashesofbrilliance.github.io/job-search-optimizer-v2/)
+[Open FTL](https://flashesofbrilliance.github.io/job-search-optimizer-v2/) and try Discover (Explore slider, Novel badge, auto‑accept), Lenses (Pattern, Pacing, Bias, Platform, Prompt), and dashboard (Milestones, Pace, Coaching).
+
+### UAT/QA Tips
+- Watch deploy status via the badge above; click through for logs.
+- Hard refresh or use a private window to avoid cache after deploy.
+- Validate core flows: Lenses summary/tooltip, Discover (Yes/No/Skip, Undo, Explore slider), Suggestion banner, Dashboard (Milestones, Pace bars, Coaching), Needs Review filter, Export Bundle + Validation Report.
 
 ## Validated Learning Prompt
 

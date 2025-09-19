@@ -418,6 +418,13 @@ function bindEventListeners() {
   
   // Table sorting
   bindTableSorting();
+  // Review panel actions
+  const btnAccept = document.getElementById('review-accept-selected');
+  const btnReject = document.getElementById('review-reject-selected');
+  const btnClear = document.getElementById('review-clear-flags');
+  if (btnAccept) btnAccept.addEventListener('click', acceptSelectedReviews);
+  if (btnReject) btnReject.addEventListener('click', rejectSelectedReviews);
+  if (btnClear) btnClear.addEventListener('click', clearReviewFlags);
 
   // Kanban sort control
   bindKanbanSort();
@@ -1624,6 +1631,7 @@ function renderTableView() {
   });
   
   updateSelectAllState();
+  updateReviewPanel();
 }
 
 function createTableRow(job) {
@@ -2705,7 +2713,8 @@ function updateFilterIndicator() {
     ...currentFilters.status,
     ...currentFilters.vibe,
     currentFilters.fitScore > 0 ? 'fit-score' : null,
-    currentFilters.search ? 'search' : null
+    currentFilters.search ? 'search' : null,
+    currentFilters.needsReview ? 'needs-review' : null
   ].filter(Boolean);
   
   const countEl = document.getElementById('filter-count');

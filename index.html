@@ -310,6 +310,14 @@
             <div class="content-views">
                 <!-- Table View -->
                 <div class="view-content" id="table-view">
+                    <div class="review-panel" id="review-panel" style="display:none;">
+                        <span id="review-count">0 items</span>
+                        <div class="review-actions">
+                            <button class="btn btn--sm btn--primary" id="review-accept-selected"><i class="fas fa-check"></i> Accept Selected</button>
+                            <button class="btn btn--sm btn--secondary" id="review-reject-selected"><i class="fas fa-times"></i> Reject Selected</button>
+                            <button class="btn btn--sm btn--outline" id="review-clear-flags"><i class="fas fa-broom"></i> Clear Flags</button>
+                        </div>
+                    </div>
                     <div class="table-container">
                         <table class="jobs-table">
                             <thead>

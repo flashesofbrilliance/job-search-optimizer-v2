@@ -5,10 +5,10 @@
 4 silly config load:file:/Users/zharris/job-search-optimizer-v2/.npmrc
 5 silly config load:file:/Users/zharris/.npmrc
 6 silly config load:file:/usr/local/etc/npmrc
-7 verbose title npm run copy-files
-8 verbose argv "run" "copy-files"
-9 verbose logfile logs-max:10 dir:/Users/zharris/job-search-optimizer-v2/.npm-cache/_logs/2025-09-19T03_06_31_271Z-
-10 verbose logfile /Users/zharris/job-search-optimizer-v2/.npm-cache/_logs/2025-09-19T03_06_31_271Z-debug-0.log
+7 verbose title npm run minify-css
+8 verbose argv "run" "minify-css"
+9 verbose logfile logs-max:10 dir:/Users/zharris/job-search-optimizer-v2/.npm-cache/_logs/2025-09-19T04_45_04_559Z-
+10 verbose logfile /Users/zharris/job-search-optimizer-v2/.npm-cache/_logs/2025-09-19T04_45_04_559Z-debug-0.log
 11 silly logfile start cleaning logs, removing 1 files
 12 silly logfile done cleaning log files
 13 verbose cwd /Users/zharris/job-search-optimizer-v2
