@@ -298,7 +298,8 @@ let discoverAutoAccept = true;
 let discoverFitMin = 8.0;
 let discoverStreak = 0;
 let discoverCount = 0;
-const discoverTotal = 0;
+let discoverTotal = 0;
+let discoverSessionRemaining = 0;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -615,6 +616,14 @@ function bindHeaderActions() {
       e.preventDefault();
       if (window.__lastSchemaReport) showSchemaReport(window.__lastSchemaReport);
       else showToast('No validation report yet', 'error');
+    });
+  }
+  // Home quick triage CTA
+  const startTriage = document.getElementById('home-start-triage');
+  if (startTriage) {
+    startTriage.addEventListener('click', (e) => {
+      e.preventDefault();
+      startTriageSession(10);
     });
   }
 }
@@ -1395,7 +1404,7 @@ function renderDiscoverView() {
   cardEl.innerHTML = `
     <div class="company">${job.company} • <span class="meta">${domain}</span> ${pick?.novel ? '<span class="badge">Novel</span>' : ''}</div>
     <div class="title">${job.roleTitle}</div>
-    <div class="meta">${job.location || ''} • Fit ${job.fitScore}</div>
+    <div class="meta">${job.location || ''} • Fit ${job.fitScore}${discoverSessionRemaining>0 ? ' • '+discoverSessionRemaining+' left' : ''}</div>
     <div class="link"><a href="${normalizeUrl(job.jobUrl)}" target="_blank" rel="noopener">Open posting</a></div>
   `;
 
@@ -1471,7 +1480,10 @@ function handleDiscoverLabel(label, job, idx, novel) {
   } else if (label === 0) {
     discoverStreak = 0;
   }
-  discoverCount += 1; updateDiscoverHUD();
+  discoverCount += 1; if (discoverSessionRemaining>0) discoverSessionRemaining -= 1; updateDiscoverHUD();
+  if (discoverSessionRemaining === 0 && label !== null) {
+    showToast('Triage session complete', 'success');
+  }
   saveDataToStorage();
   renderDashboard();
   applyAllFilters();
@@ -2140,6 +2152,7 @@ function renderAnalyticsView() {
     initializeFitSuccessChart();
     initializeActivityTrendChart();
     renderSegmentStats();
+    renderInsightsSuggestion();
   }, 100);
 }
 
@@ -2287,6 +2300,23 @@ function renderSegmentStats() {
       <span class="segment-score">${(seg.rate*100).toFixed(0)}% <small style="color: var(--color-text-secondary);">(Δ ${(seg.deltaWoW*100).toFixed(0)}%)</small></span>
     </div>
   `).join('');
+}
+
+function renderInsightsSuggestion() {
+  const box = document.getElementById('insights-suggest'); if (!box) return;
+  const stats = computeSegmentStatsFromFeedback();
+  if (!stats || stats.length < 2) { box.innerHTML = '<em>Gather a few labels in Triage to see suggestions.</em>'; return; }
+  const top = stats[0], next = stats[1];
+  const good = top.ci.lo > next.ci.hi && top.n >= (segmentMinN||5) && next.n >= (segmentMinN||5);
+  if (!good) { box.innerHTML = '<em>No strong recommendation yet. Keep labeling.</em>'; return; }
+  const lens = lensFromSegment(top.name);
+  if (!lens) { box.innerHTML = '<em>No suggestion</em>'; return; }
+  const summary = lensToSummary(lens);
+  box.innerHTML = `Winner: <strong>${top.name}</strong> — ${(top.rate*100).toFixed(0)}% (n=${top.n}, 99% CI ${(top.ci.lo*100).toFixed(0)}–${(top.ci.hi*100).toFixed(0)}%)<br>
+  <small>${summary}</small><br>
+  <button class="btn btn--sm btn--primary" id="insights-apply-suggest">Apply Suggested Lens</button>`;
+  const btn = document.getElementById('insights-apply-suggest');
+  if (btn) btn.onclick = () => { applySuggestedLens(lens); showToast('Lens applied', 'success'); };
 }
 
 function computeSegmentStatsFromFeedback() {
