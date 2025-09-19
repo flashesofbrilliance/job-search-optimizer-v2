@@ -62,3 +62,8 @@ npm run deploy
 Notes:
 - The default deploy script publishes the repository root (.) so index.html loads unminified assets. If you prefer serving the minified build, change the deploy script to `gh-pages -d dist` and ensure your index.html in dist references the minified files.
 - Ensure your Git remote is set and you have push permissions before running `npm run deploy`.
+
+## Deployment Status
+
+- Live (branch-based) URL: https://flashesofbrilliance.github.io/job-search-optimizer-v2/
+- GitHub Actions workflow: `.github/workflows/deploy.yml` (builds `dist/` and deploys via actions/deploy-pages)
