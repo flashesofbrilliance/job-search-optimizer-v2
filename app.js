@@ -1707,6 +1707,9 @@ function createTableRow(job) {
       <button class="action-btn" onclick="viewJobDetails('${job.id}')" title="View/Edit">
         <i class="fas fa-eye"></i>
       </button>
+      <button class="action-btn" onclick="markJobReview('${job.id}')" title="Mark Needs Review">
+        <i class="fas fa-clipboard-check"></i>
+      </button>
       <button class="action-btn" onclick="archiveJob('${job.id}')" title="Archive">
         <i class="fas fa-archive"></i>
       </button>
@@ -3283,3 +3286,14 @@ window.toggleJobSelection = toggleJobSelection;
 window.viewJobDetails = viewJobDetails;
 window.archiveJob = archiveJob;
 window.restoreJob = restoreJob;
+window.markJobReview = markJobReview;
+
+function markJobReview(jobId) {
+  const job = jobsData.find(j => j.id === jobId);
+  if (!job) return;
+  job.needsReview = !job.needsReview;
+  saveDataToStorage();
+  applyAllFilters();
+  renderCurrentView();
+  showToast(job.needsReview ? 'Marked for review' : 'Review flag cleared', 'info');
+}
