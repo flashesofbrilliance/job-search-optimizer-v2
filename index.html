@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Failure To Land (FTL)</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1 class="app-title">
+                        <i class="fas fa-briefcase"></i>
+                        Failure To Land (FTL)
+                    </h1>
+                    <div class="header-stats">
+                        <span class="stat-item">
+                            <span class="stat-value" id="total-roles">50</span>
+                            <span class="stat-label">Total Roles</span>
+                        </span>
+                        <span class="stat-item">
+                            <span class="stat-value" id="active-roles">50</span>
+                            <span class="stat-label">Active</span>
+                        </span>
+                        <span class="stat-item">
+                            <span class="stat-value" id="avg-fit-score">8.4</span>
+                            <span class="stat-label">Avg Fit Score</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn--secondary btn--sm" id="goals-btn">
+                        <i class="fas fa-target"></i> Goals & Pacing
+                    </button>
+                    <button class="btn btn--secondary btn--sm" id="activity-log-btn">
+                        <i class="fas fa-history"></i> Activity Log
+                    </button>
+                    <button class="btn btn--secondary btn--sm" id="archive-btn">
+                        <i class="fas fa-archive"></i> Archive
+                    </button>
+                    <input type="file" id="csv-import-input" accept=".csv" style="display: none;">
+                    <button class="btn btn--secondary btn--sm" id="import-btn">
+                        <i class="fas fa-upload"></i> Import CSV
+                    </button>
+                    <button class="btn btn--secondary btn--sm" id="export-btn">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn btn--secondary btn--sm" id="export-bundle-btn">
+                        <i class="fas fa-file-archive"></i> Export Bundle
+                    </button>
+                    <button class="btn btn--secondary btn--sm" id="open-schema-report-btn" title="Open last validation report">
+                        <i class="fas fa-file-alt"></i> Validation Report
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main class="main-content">
+            <!-- Dashboard Overview -->
+            <section class="dashboard-section">
+                <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 8px;">
+                    <h2 style="margin:0; font-size: 16px; color: var(--color-text);">Today</h2>
+                    <button class="btn btn--primary btn--sm" id="home-start-triage">
+                        <i class="fas fa-play"></i> Start Triage (10)
+                    </button>
+                </div>
+                <div class="dashboard-cards">
+                    <div class="dashboard-card">
+                        <div class="card-icon success">
+                            <i class="fas fa-handshake"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Offers</h3>
+                            <div class="card-value" id="offers-count">0</div>
+                            <div class="card-change neutral">Ready to convert</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon warning">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Interviewing</h3>
+                            <div class="card-value" id="interviewing-count">0</div>
+                            <div class="card-change neutral">Pipeline ready</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon info">
+                            <i class="fas fa-paper-plane"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Applied</h3>
+                            <div class="card-value" id="applied-count">0</div>
+                            <div class="card-change neutral">Ready to apply</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon primary">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Not Started</h3>
+                            <div class="card-value" id="not-started-count">50</div>
+                            <div class="card-change positive">Fresh opportunities</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon primary">
+                            <i class="fas fa-stopwatch"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Pacing Now</h3>
+                            <div class="card-value" id="pacing-now">0</div>
+                            <div class="card-change neutral">Recommended this week</div>
+                            <div class="card-change neutral" id="pacing-weekly-target">Target: 0/wk</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="milestones" id="milestones">
+                    <!-- Milestone badges injected here -->
+                </div>
+                <div class="pace-panel" id="pace-panel">
+                    <div class="pace-row">
+                        <div class="pace-label">Applications this week</div>
+                        <div class="pace-bar"><div class="pace-fill" id="pace-apps-fill" style="width:0%"></div></div>
+                        <div class="pace-meta" id="pace-apps-meta">0/0</div>
+                    </div>
+                    <div class="pace-row">
+                        <div class="pace-label">Discover labels this week</div>
+                        <div class="pace-bar"><div class="pace-fill" id="pace-discover-fill" style="width:0%"></div></div>
+                        <div class="pace-meta" id="pace-discover-meta">0</div>
+                    </div>
+                </div>
+                <div class="coaching-banner" id="coaching-banner" style="display:none;"></div>
+            </section>
+
+            <!-- Goals Progress Bar -->
+            <section class="goals-section" id="goals-section">
+                <div class="goals-progress-card">
+                    <div class="goals-header">
+                        <div class="goals-info">
+                            <h3 id="goals-title">Goal: 5 offers in 6 weeks</h3>
+                            <div class="goals-meta">
+                                <span id="goals-progress">Week 3 of 6</span>
+                                <span id="goals-recommendation">Recommended: 3 more applications this week</span>
+                            </div>
+                        </div>
+                        <div class="goals-stats">
+                            <div class="goal-stat">
+                                <span class="goal-stat-value" id="goal-offers">0</span>
+                                <span class="goal-stat-label">Offers</span>
+                            </div>
+                            <div class="goal-stat">
+                                <span class="goal-stat-value" id="goal-pipeline">0</span>
+                                <span class="goal-stat-label">In Pipeline</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="goals-progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Controls -->
+            <section class="controls-section">
+                <div class="controls-left">
+                    <div class="view-switcher">
+                        <button class="view-btn active" data-view="home">
+                            <i class="fas fa-home"></i> Home
+                        </button>
+                        <button class="view-btn" data-view="triage">
+                            <i class="fas fa-water"></i> Triage
+                        </button>
+                        <button class="view-btn" data-view="pipeline">
+                            <i class="fas fa-columns"></i> Pipeline
+                        </button>
+                        <button class="view-btn" data-view="insights">
+                            <i class="fas fa-chart-bar"></i> Insights
+                        </button>
+                    </div>
+                    <div class="kanban-sort" id="kanban-sort-wrap" style="display:none; gap:8px; align-items:center; margin-left:12px;">
+                        <label for="kanban-sort-select" class="form-label" style="margin:0; font-size:12px; color: var(--color-text-secondary);">Sort</label>
+                        <select id="kanban-sort-select" class="form-control" style="min-width: 180px;">
+                            <option value="fit-desc">Best Fit (9→0)</option>
+                            <option value="fit-asc">Worst Fit (0→9)</option>
+                            <option value="company-asc">Company (A→Z)</option>
+                            <option value="company-desc">Company (Z→A)</option>
+                            <option value="applied-desc">Applied (Newest)</option>
+                            <option value="applied-asc">Applied (Oldest)</option>
+                        </select>
+                        <button class="btn btn--sm btn--secondary" id="pipeline-review-shortcut" title="Open Needs Review list">Review List</button>
+                    </div>
+                    <div class="bulk-actions hidden" id="bulk-actions">
+                        <span class="bulk-counter" id="bulk-counter">0 selected</span>
+                        <select class="form-control bulk-select" id="bulk-status-select">
+                            <option value="">Change Status</option>
+                            <option value="not-started">Not Started</option>
+                            <option value="research">Research</option>
+                            <option value="applied">Applied</option>
+                            <option value="interviewing">Interviewing</option>
+                            <option value="offer">Offer</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                        <select class="form-control bulk-select" id="bulk-vibe-select">
+                            <option value="">Change Vibe</option>
+                            <option value="😊">😊 Positive</option>
+                            <option value="😐">😐 Neutral</option>
+                            <option value="😟">😟 Concerned</option>
+                        </select>
+                        <button class="btn btn--sm btn--primary" id="bulk-apply-btn">Apply</button>
+                        <button class="btn btn--sm btn--outline" id="bulk-clear-btn">Clear</button>
+                    </div>
+                </div>
+                <div class="controls-right">
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" placeholder="Search companies, roles, or tags..." id="search-input">
+                    </div>
+                    <div class="filter-container">
+                        <button class="filter-btn" id="filter-btn">
+                            <i class="fas fa-filter"></i> Filters
+                            <span class="filter-count hidden" id="filter-count">0</span>
+                        </button>
+                        <button class="filter-btn" id="lenses-btn" title="Lenses (patterns & biases)">
+                            <i class="fas fa-glasses"></i> Lenses
+                            <span class="filter-count hidden" id="lens-indicator">0</span>
+                        </button>
+                        <span class="lens-summary-chip" id="lens-summary-chip" title="Active lens summary"></span>
+                        <button class="filter-btn" id="needs-review-btn" title="Show items queued for review">
+                            <i class="fas fa-clipboard-check"></i> Needs Review
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filters Panel -->
+            <div class="filters-panel hidden" id="filters-panel">
+                <div class="filters-content">
+                    <div class="filter-group">
+                        <label class="filter-label">Status</label>
+                        <div class="filter-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="not-started" class="status-filter">
+                                <span class="checkmark"></span>
+                                Not Started
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="research" class="status-filter">
+                                <span class="checkmark"></span>
+                                Research
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="applied" class="status-filter">
+                                <span class="checkmark"></span>
+                                Applied
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="interviewing" class="status-filter">
+                                <span class="checkmark"></span>
+                                Interviewing
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="offer" class="status-filter">
+                                <span class="checkmark"></span>
+                                Offer
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="rejected" class="status-filter">
+                                <span class="checkmark"></span>
+                                Rejected
+                            </label>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Fit Score</label>
+                        <input type="range" class="range-slider" id="fit-score-range" min="0" max="10" step="0.1" value="0">
+                        <div class="range-labels">
+                            <span>0</span>
+                            <span id="fit-score-value">0+</span>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Vibe</label>
+                        <div class="filter-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="😊" class="vibe-filter">
+                                <span class="checkmark"></span>
+                                😊 Positive
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="😐" class="vibe-filter">
+                                <span class="checkmark"></span>
+                                😐 Neutral
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="😟" class="vibe-filter">
+                                <span class="checkmark"></span>
+                                😟 Concerned
+                            </label>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn--outline btn--sm" id="clear-filters-btn">Clear All</button>
+                        <button class="btn btn--primary btn--sm" id="apply-filters-btn">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Views -->
+            <div class="content-views">
+                <!-- Table View -->
+                <div class="view-content" id="table-view">
+                    <div class="review-panel" id="review-panel" style="display:none;">
+                        <span id="review-count">0 items</span>
+                        <div class="review-actions">
+                            <button class="btn btn--sm btn--primary" id="review-accept-selected"><i class="fas fa-check"></i> Accept Selected</button>
+                            <button class="btn btn--sm btn--secondary" id="review-reject-selected"><i class="fas fa-times"></i> Reject Selected</button>
+                            <button class="btn btn--sm btn--outline" id="review-clear-flags"><i class="fas fa-broom"></i> Clear Flags</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="jobs-table">
+                            <thead>
+                                <tr>
+                                    <th class="select-col">
+                                        <input type="checkbox" id="select-all">
+                                    </th>
+                                    <th class="sortable" data-sort="company">
+                                        Company <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="roleTitle">
+                                        Role <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th>
+                                        Link
+                                    </th>
+                                    <th class="sortable" data-sort="status">
+                                        Status <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="fitScore">
+                                        Fit Score <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="vibe">
+                                        Vibe <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="salary">
+                                        Salary <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="appliedDate">
+                                        Applied <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jobs-table-body">
+                                <!-- Job rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Kanban View -->
+                <div class="view-content active" id="kanban-view">
+                    <div class="kanban-board">
+                        <div class="kanban-column" data-status="not-started">
+                            <div class="column-header">
+                                <h3>Not Started <span class="count" id="not-started-kanban-count">50</span></h3>
+                            </div>
+                            <div class="column-content" id="not-started-column"></div>
+                        </div>
+                        <div class="kanban-column" data-status="research">
+                            <div class="column-header">
+                                <h3>Research <span class="count" id="research-kanban-count">0</span></h3>
+                            </div>
+                            <div class="column-content" id="research-column"></div>
+                        </div>
+                        <div class="kanban-column" data-status="applied">
+                            <div class="column-header">
+                                <h3>Applied <span class="count" id="applied-kanban-count">0</span></h3>
+                            </div>
+                            <div class="column-content" id="applied-column"></div>
+                        </div>
+                        <div class="kanban-column" data-status="interviewing">
+                            <div class="column-header">
+                                <h3>Interviewing <span class="count" id="interviewing-kanban-count">0</span></h3>
+                            </div>
+                            <div class="column-content" id="interviewing-column"></div>
+                        </div>
+                        <div class="kanban-column" data-status="offer">
+                            <div class="column-header">
+                                <h3>Offers <span class="count" id="offer-kanban-count">0</span></h3>
+                            </div>
+                            <div class="column-content" id="offer-column"></div>
+                        </div>
+                        <div class="kanban-column" data-status="rejected">
+                            <div class="column-header">
+                                <h3>Rejected <span class="count" id="rejected-kanban-count">0</span></h3>
+                            </div>
+                            <div class="column-content" id="rejected-column"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Discover View -->
+                <div class="view-content" id="discover-view">
+                    <div class="discover-wrap">
+                        <div class="discover-controls" style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+                            <label class="form-label" style="margin:0; font-size:12px; color: var(--color-text-secondary);">Explore</label>
+                            <input type="range" id="discover-explore" min="0" max="50" step="5" value="10" style="width:160px;">
+                            <span id="discover-explore-label" style="font-size:12px; color: var(--color-text-secondary);">10%</span>
+                            <span style="margin-left:16px; font-size:12px; color: var(--color-text-secondary);">Auto‑add</span>
+                            <label class="form-label" style="display:flex; align-items:center; gap:6px; margin:0;">
+                                <input type="checkbox" id="discover-auto-accept" checked>
+                                <span class="form-label" style="font-size:12px;">if Fit ≥</span>
+                            </label>
+                            <input type="number" id="discover-fit-min" class="form-control" value="8.0" step="0.1" min="0" max="10" style="width:72px;">
+                            <div style="margin-left:auto; display:flex; gap:12px; align-items:center;">
+                                <span id="discover-streak" style="font-size:12px; color: var(--color-text-secondary);">Streak 0</span>
+                                <span id="discover-progress" style="font-size:12px; color: var(--color-text-secondary);">0/0</span>
+                            </div>
+                        </div>
+                        <div class="discover-card" id="discover-card">
+                            <!-- Populated by JS: company, title, link, tags -->
+                        </div>
+                        <div id="discover-suggest" class="discover-suggest" style="display:none; border:1px dashed var(--color-card-border); border-radius: var(--radius-base); padding:8px; margin:8px 0; font-size:12px;">
+                            <strong>Suggestion:</strong> <span id="discover-suggest-text"></span>
+                            <button class="btn btn--sm btn--primary" id="discover-apply-suggest" style="margin-left:8px;">Apply Suggested Lens</button>
+                        </div>
+                        <div class="discover-reasons">
+                            <div class="reasons-block">
+                                <div class="reasons-title">Why Yes?</div>
+                                <div id="reasons-yes" class="reasons-chips"></div>
+                            </div>
+                            <div class="reasons-block">
+                                <div class="reasons-title">Why No?</div>
+                                <div id="reasons-no" class="reasons-chips"></div>
+                            </div>
+                        </div>
+                        <div class="discover-actions">
+                            <button class="btn btn--outline" id="discover-undo"><i class="fas fa-undo"></i> Undo</button>
+                            <button class="btn btn--outline" id="discover-no"><i class="fas fa-times"></i> No</button>
+                            <button class="btn" id="discover-skip"><i class="fas fa-forward"></i> Skip</button>
+                            <button class="btn btn--primary" id="discover-yes"><i class="fas fa-check"></i> Yes</button>
+                        </div>
+                        <div class="discover-status" id="discover-status"></div>
+                    </div>
+                </div>
+
+                <!-- Analytics View -->
+                <div class="view-content" id="analytics-view">
+                    <div class="analytics-grid">
+                        <div class="analytics-card">
+                            <h3>Suggested Lens</h3>
+                            <div id="insights-suggest" style="font-size: 12px; color: var(--color-text);">
+                                <em>Gather a few labels in Triage to see suggestions.</em>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Pipeline Conversion Funnel</h3>
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="funnel-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Fit Score vs Success Rate</h3>
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="fit-success-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Weekly Activity Trends</h3>
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="activity-trend-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Top Performing Sectors</h3>
+                            <div class="segment-summary" id="segment-summary"></div>
+                            <div class="segment-controls" style="margin: 6px 0 8px 0; display:flex; align-items:center; gap:8px;">
+                              <label for="segment-min-n" class="form-label" style="margin:0; font-size:12px; color: var(--color-text-secondary);">Min n</label>
+                              <input type="number" id="segment-min-n" class="form-control" value="5" min="1" max="100" style="width:80px;">
+                              <small style="color: var(--color-text-secondary);">WoW Δ shown at 99% CI</small>
+                            </div>
+                            <div class="segment-stats" id="segment-stats"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Archive View -->
+                <div class="view-content" id="archive-view">
+                    <div class="archive-header">
+                        <h2>Archived Jobs</h2>
+                        <p>Jobs that have been archived or rejected. You can restore them if they become active again.</p>
+                    </div>
+                    <div class="table-container">
+                        <table class="jobs-table">
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th>Role</th>
+                                    <th>Archived Date</th>
+                                    <th>Reason</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="archive-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Job Details Modal -->
+        <div class="modal hidden" id="job-modal">
+            <div class="modal-overlay" id="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="modal-job-title">Job Details</h2>
+                    <button class="modal-close" id="modal-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="modal-body">
+                    <!-- Job details will be populated by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline" id="modal-cancel">Close</button>
+                    <button class="btn btn--primary" id="modal-save">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Goals Setting Modal -->
+        <div class="modal hidden" id="goals-modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Set Goals & Pacing</h2>
+                    <button class="modal-close" id="goals-modal-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Target Number of Offers</label>
+                        <input type="number" class="form-control" id="goal-offers-input" min="1" max="20" value="5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Timeline (weeks)</label>
+                        <input type="number" class="form-control" id="goal-timeline-input" min="1" max="52" value="6">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Expected Application-to-Interview Rate (%)</label>
+                        <input type="number" class="form-control" id="goal-interview-rate" min="5" max="50" value="30">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Expected Interview-to-Offer Rate (%)</label>
+                        <input type="number" class="form-control" id="goal-offer-rate" min="5" max="50" value="25">
+                    </div>
+                    <div class="goals-calculation" id="goals-calculation">
+                        <h4>Recommended Strategy:</h4>
+                        <p id="goals-recommendation-text">Based on your conversion rates, you should apply to <strong>67 roles</strong> to achieve 5 offers in 6 weeks.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline" id="goals-cancel">Cancel</button>
+                    <button class="btn btn--primary" id="goals-save">Set Goals</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log Modal -->
+        <div class="modal hidden" id="master-activity-modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Master Activity Log</h2>
+                    <button class="modal-close" id="activity-log-modal-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="activity-log-header">
+                        <div class="activity-stats">
+                            <div class="activity-stat">
+                                <span class="stat-value" id="total-activities">0</span>
+                                <span class="stat-label">Total Activities</span>
+                            </div>
+                            <div class="activity-stat">
+                                <span class="stat-value" id="this-week-activities">0</span>
+                                <span class="stat-label">This Week</span>
+                            </div>
+                            <div class="activity-stat">
+                                <span class="stat-value" id="productivity-score">100</span>
+                                <span class="stat-label">Productivity Score</span>
+                            </div>
+                        </div>
+                        <div class="activity-achievements" id="activity-achievements">
+                            <!-- Achievements will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="activity-timeline" id="master-activity-timeline">
+                        <!-- Activities will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline" id="activity-log-close">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CSV Import Result Modal -->
+        <div class="modal hidden" id="import-result-modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Import Results</h2>
+                    <button class="modal-close" id="import-result-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="import-result-body">
+                    <!-- Import results will be populated by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--primary" id="import-result-ok">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lenses Modal -->
+        <div class="modal hidden" id="lenses-modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="snellen">
+                        <div class="snellen-line snellen-1">L</div>
+                        <div class="snellen-line snellen-2">EN</div>
+                        <div class="snellen-line snellen-3">SES</div>
+                    </div>
+                    <button class="modal-close" id="lenses-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="lenses-grid">
+                        <label class="radio-card">
+                            <input type="radio" name="lens" value="pattern" />
+                            <span class="radio-visual">
+                                <i class="fas fa-bullseye"></i>
+                                <strong>Pattern</strong>
+                                <small>Top-fit AI/Crypto</small>
+                            </span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="lens" value="pacing" />
+                            <span class="radio-visual">
+                                <i class="fas fa-stopwatch"></i>
+                                <strong>Pacing</strong>
+                                <small>This week’s focus</small>
+                            </span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="lens" value="bias" />
+                            <span class="radio-visual">
+                                <i class="fas fa-balance-scale"></i>
+                                <strong>Bias</strong>
+                                <small>NYC/Onsite highlight</small>
+                            </span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="lens" value="platform" />
+                            <span class="radio-visual">
+                                <i class="fas fa-network-wired"></i>
+                                <strong>Platform</strong>
+                                <small>Greenhouse/Lever</small>
+                            </span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="lens" value="custom" />
+                            <span class="radio-visual">
+                                <i class="fas fa-sliders-h"></i>
+                                <strong>Custom</strong>
+                                <small>JSON builder</small>
+                            </span>
+                        </label>
+                        <label class="radio-card" id="lens-prompt-card" style="display:none;">
+                            <input type="radio" name="lens" value="prompt" />
+                            <span class="radio-visual">
+                                <i class="fas fa-lightbulb"></i>
+                                <strong>Prompt</strong>
+                                <small>Saved from prompt</small>
+                            </span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="lens" value="none" />
+                            <span class="radio-visual">
+                                <i class="fas fa-eye-slash"></i>
+                                <strong>None</strong>
+                                <small>Show all</small>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="form-group" id="lens-custom-wrap">
+                        <label class="form-label">Custom Lens (JSON)</label>
+                        <textarea class="form-control" id="lens-custom-json" rows="10" placeholder='{
+  "name": "Custom",
+  "mode": "filter",
+  "include": [{ "all": [ { "field": "fitScore", "gte": 8.5 } ] }],
+  "exclude": []
+}'></textarea>
+                        <small>Fields: company, roleTitle, jobUrl, jobDomain, tags, location, status, fitScore, vibe, salary</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline" id="lenses-save-prompt" title="Save Custom as Prompt">Save as Prompt</button>
+                    <button class="btn btn--outline" id="lenses-cancel">Cancel</button>
+                    <button class="btn btn--primary" id="lenses-apply">Apply</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container" id="toast-container"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ajv@8/dist/ajv7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script src="app.js"></script>
+
+    <!-- Schema Validation Report Modal -->
+    <div class="modal hidden" id="schema-report-modal">
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Export Validation Report</h2>
+          <button class="modal-close" id="schema-report-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div id="schema-report-body" class="schema-report-body"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn--primary" id="schema-report-ok">OK</button>
+        </div>
+      </div>
+    </div>
+</body>
+</html>
