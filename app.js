@@ -274,6 +274,7 @@ const lensPresets = [
 ];
 let activeLensId = 'none';
 let customLens = { id: 'custom', name: 'Custom', mode: 'filter', include: [], exclude: [] };
+let promptLens = null; // saved-from-prompt lens (optional)
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
