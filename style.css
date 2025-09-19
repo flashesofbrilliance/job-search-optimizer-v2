@@ -1136,6 +1136,24 @@ select.form-control {
   margin-left: var(--space-4);
 }
 
+/* Lenses UI: Snellen header + cards */
+.snellen { display: flex; gap: 12px; align-items: baseline; }
+.snellen-line { font-weight: 800; letter-spacing: 1px; line-height: 1; }
+.snellen-1 { font-size: 32px; }
+.snellen-2 { font-size: 24px; }
+.snellen-3 { font-size: 18px; }
+
+.lenses-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 12px; }
+.radio-card { position: relative; }
+.radio-card input { position: absolute; opacity: 0; pointer-events: none; }
+.radio-card .radio-visual { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px; border: 1px solid var(--color-card-border); border-radius: var(--radius-md); cursor: pointer; background: #fff; }
+.radio-card .radio-visual i { font-size: 18px; color: var(--color-primary); }
+.radio-card input:checked + .radio-visual { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(var(--color-teal-500-rgb),0.18); }
+
+/* Lens highlight */
+tr.lens-hit { border-left: 4px solid var(--color-primary); }
+.kanban-card.lens-hit { outline: 2px dashed var(--color-primary); outline-offset: -2px; }
+
 /* Filters Panel */
 .filters-panel {
   background-color: var(--color-surface);

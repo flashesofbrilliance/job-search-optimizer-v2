@@ -249,12 +249,26 @@ let goals = {
   startDate: "2025-09-18"
 };
 let masterActivityLog = [];
-// Meta filter configuration (patterns / anti-patterns)
-let metaFilters = {
-  enabled: false,
-  include: [],
-  exclude: []
-};
+// Lenses (patterns / biases)
+const lensPresets = [
+  {
+    id: 'pattern', name: 'Pattern: Top-fit AI/Crypto', mode: 'filter',
+    include: [{ all: [ { field: 'fitScore', gte: 8.5 }, { field: 'tags', includesAny: ['AI','Crypto'] } ] }],
+    exclude: [{ field: 'status', equals: 'rejected' }]
+  },
+  {
+    id: 'bias', name: 'Bias: NYC/Onsite', mode: 'highlight', color: '#EAB308',
+    include: [{ any: [ { field: 'location', matches: 'NYC|New York' }, { field: 'tags', includesAny: ['Onsite'] } ] }],
+    exclude: []
+  },
+  {
+    id: 'platform', name: 'Platform: Greenhouse/Lever', mode: 'filter',
+    include: [{ any: [ { field: 'jobDomain', includes: 'greenhouse.io' }, { field: 'jobDomain', includes: 'lever.co' } ] }],
+    exclude: []
+  }
+];
+let activeLensId = 'none';
+let customLens = { id: 'custom', name: 'Custom', mode: 'filter', include: [], exclude: [] };
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -264,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeApp() {
   // Load data from localStorage if available
   loadDataFromStorage();
-  loadMetaFiltersFromStorage();
+  loadLensStateFromStorage();
   
   // Initialize filtered jobs
   filteredJobs = jobsData.filter(job => !job.isArchived);
@@ -276,7 +290,7 @@ function initializeApp() {
   renderDashboard();
   renderGoalsSection();
   renderCurrentView();
-  updateMetaFilterIndicator();
+  updateLensIndicator();
   
   // Initialize master activity log
   initializeMasterActivityLog();
@@ -291,7 +305,8 @@ function saveDataToStorage() {
     localStorage.setItem('jobSearchFilters', JSON.stringify(currentFilters));
     localStorage.setItem('jobSearchGoals', JSON.stringify(goals));
     localStorage.setItem('masterActivityLog', JSON.stringify(masterActivityLog));
-    localStorage.setItem('metaFiltersConfig', JSON.stringify(metaFilters));
+    localStorage.setItem('lensActive', activeLensId);
+    localStorage.setItem('lensCustom', JSON.stringify(customLens));
     console.log('Data saved to localStorage');
   } catch (error) {
     console.error('Failed to save data to localStorage:', error);
@@ -330,18 +345,13 @@ function loadDataFromStorage() {
   }
 }
 
-function loadMetaFiltersFromStorage() {
+function loadLensStateFromStorage() {
   try {
-    const saved = localStorage.getItem('metaFiltersConfig');
-    if (saved) {
-      const cfg = JSON.parse(saved);
-      if (cfg && typeof cfg === 'object') {
-        metaFilters = { enabled: !!cfg.enabled, include: cfg.include || [], exclude: cfg.exclude || [] };
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to load meta filters:', e);
-  }
+    const a = localStorage.getItem('lensActive');
+    if (a) activeLensId = a;
+    const c = localStorage.getItem('lensCustom');
+    if (c) customLens = { ...customLens, ...JSON.parse(c) };
+  } catch (e) { console.warn('Failed to load lenses state:', e); }
 }
 
 function bindEventListeners() {
@@ -436,12 +446,12 @@ function bindSearchAndFilters() {
     });
   }
   
-  // Meta filter open
-  const metaBtn = document.getElementById('meta-filter-btn');
-  if (metaBtn) {
-    metaBtn.addEventListener('click', (e) => {
+  // Lenses open
+  const lensesBtn = document.getElementById('lenses-btn');
+  if (lensesBtn) {
+    lensesBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      openMetaFilterModal();
+      openLensesModal();
     });
   }
   
@@ -769,11 +779,13 @@ function updateGoalsCalculation() {
     `;
   }
   
-  // Meta filter modal
-  const metaSave = document.getElementById('meta-filter-save');
-  if (metaSave) metaSave.addEventListener('click', saveMetaFilters);
-  const metaCancel = document.getElementById('meta-filter-cancel');
-  if (metaCancel) metaCancel.addEventListener('click', closeModals);
+  // Lenses modal
+  const lensApply = document.getElementById('lenses-apply');
+  if (lensApply) lensApply.addEventListener('click', applyLensSelection);
+  const lensCancel = document.getElementById('lenses-cancel');
+  if (lensCancel) lensCancel.addEventListener('click', closeModals);
+  const lensClose = document.getElementById('lenses-close');
+  if (lensClose) lensClose.addEventListener('click', closeModals);
 }
 
 function saveGoals() {
@@ -1156,6 +1168,11 @@ function createTableRow(job) {
   row.dataset.jobId = job.id;
   
   const isSelected = selectedJobs.has(job.id);
+  // Lens highlight for filter 'highlight' mode
+  const lens = getActiveLens();
+  if (lens && lens.mode === 'highlight' && matchesLens(job, lens)) {
+    row.classList.add('lens-hit');
+  }
   
   row.innerHTML = `
     <td class="select-col">
@@ -1827,23 +1844,29 @@ function applyAllFilters() {
     
     return true;
   });
-  
-  // Apply meta filters if enabled
-  if (metaFilters.enabled) {
-    filteredJobs = filteredJobs.filter(job => matchesMetaFilters(job, metaFilters));
+  // Apply active lens (filter mode)
+  const lens = getActiveLens();
+  if (lens && lens.mode === 'filter') {
+    filteredJobs = filteredJobs.filter(job => matchesLens(job, lens));
   }
   
   renderCurrentView();
 }
 
-// Meta filter logic
-function matchesMetaFilters(job, cfg) {
-  if (cfg.include && cfg.include.length > 0) {
-    const anyInclude = cfg.include.some(rule => evalRule(job, rule));
+// Lens logic
+function getActiveLens() {
+  if (activeLensId === 'custom') return customLens;
+  if (activeLensId === 'none') return null;
+  return lensPresets.find(l => l.id === activeLensId) || null;
+}
+
+function matchesLens(job, lens) {
+  if (lens?.include && lens.include.length > 0) {
+    const anyInclude = lens.include.some(rule => evalRule(job, rule));
     if (!anyInclude) return false;
   }
-  if (cfg.exclude && cfg.exclude.length > 0) {
-    const anyExclude = cfg.exclude.some(rule => evalRule(job, rule));
+  if (lens?.exclude && lens.exclude.length > 0) {
+    const anyExclude = lens.exclude.some(rule => evalRule(job, rule));
     if (anyExclude) return false;
   }
   return true;
@@ -1894,48 +1917,56 @@ function compareValue(v, rule) {
 function toStr(x) { return (x ?? '').toString().toLowerCase(); }
 function toNum(x) { const n = parseFloat(x); return isNaN(n) ? 0 : n; }
 
-// Meta filter UI
-function openMetaFilterModal() {
-  const modal = document.getElementById('meta-filter-modal');
-  const enabled = document.getElementById('meta-filter-enabled');
-  const textarea = document.getElementById('meta-filter-json');
-  if (!modal || !enabled || !textarea) return;
-  enabled.checked = !!metaFilters.enabled;
-  textarea.value = JSON.stringify(metaFilters, null, 2);
+// Lenses UI
+function openLensesModal() {
+  const modal = document.getElementById('lenses-modal');
+  if (!modal) return;
+  // select active lens
+  const radios = modal.querySelectorAll('input[name="lens"]');
+  radios.forEach(r => { r.checked = (r.value === activeLensId); });
+  // custom JSON
+  const customWrap = document.getElementById('lens-custom-wrap');
+  const textarea = document.getElementById('lens-custom-json');
+  if (textarea) textarea.value = JSON.stringify(customLens, null, 2);
+  if (customWrap) customWrap.style.display = activeLensId === 'custom' ? 'block' : 'none';
+  radios.forEach(r => r.addEventListener('change', () => {
+    if (customWrap) customWrap.style.display = r.value === 'custom' ? 'block' : 'none';
+  }));
   modal.classList.remove('hidden');
 }
 
-function saveMetaFilters() {
-  const enabled = document.getElementById('meta-filter-enabled');
-  const textarea = document.getElementById('meta-filter-json');
-  try {
-    const cfg = JSON.parse(textarea.value || '{}');
-    metaFilters = {
-      enabled: enabled?.checked || !!cfg.enabled,
-      include: Array.isArray(cfg.include) ? cfg.include : [],
-      exclude: Array.isArray(cfg.exclude) ? cfg.exclude : []
-    };
-    localStorage.setItem('metaFiltersConfig', JSON.stringify(metaFilters));
-    updateMetaFilterIndicator();
-    applyAllFilters();
-    closeModals();
-    showToast('Meta filter saved', 'success');
-  } catch (e) {
-    console.error('Invalid meta filter JSON', e);
-    showToast('Invalid meta filter JSON', 'error');
+function applyLensSelection() {
+  const modal = document.getElementById('lenses-modal');
+  if (!modal) return;
+  const selected = modal.querySelector('input[name="lens"]:checked');
+  const val = selected ? selected.value : 'none';
+  activeLensId = val;
+  if (val === 'custom') {
+    try {
+      const cfg = JSON.parse(document.getElementById('lens-custom-json').value || '{}');
+      customLens = { ...customLens, ...cfg };
+    } catch (e) { showToast('Invalid custom lens JSON', 'error'); return; }
   }
+  localStorage.setItem('lensActive', activeLensId);
+  localStorage.setItem('lensCustom', JSON.stringify(customLens));
+  updateLensIndicator();
+  applyAllFilters();
+  closeModals();
 }
 
-function updateMetaFilterIndicator() {
-  const badge = document.getElementById('meta-filter-indicator');
+function updateLensIndicator() {
+  const badge = document.getElementById('lens-indicator');
   if (!badge) return;
-  const count = (metaFilters.include?.length || 0) + (metaFilters.exclude?.length || 0);
-  if (metaFilters.enabled && count > 0) {
-    badge.textContent = count;
-    badge.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden');
+  const lens = getActiveLens();
+  if (lens) {
+    const count = (lens.include?.length || 0) + (lens.exclude?.length || 0);
+    if (count > 0) {
+      badge.textContent = lens.name ? lens.name.split(':')[0] : count;
+      badge.classList.remove('hidden');
+      return;
+    }
   }
+  badge.classList.add('hidden');
 }
 
 function clearFilters() {

@@ -174,9 +174,9 @@
                             <i class="fas fa-filter"></i> Filters
                             <span class="filter-count hidden" id="filter-count">0</span>
                         </button>
-                        <button class="filter-btn" id="meta-filter-btn" title="Meta Filter (patterns/anti-patterns)">
-                            <i class="fas fa-microscope"></i> Meta
-                            <span class="filter-count hidden" id="meta-filter-indicator">0</span>
+                        <button class="filter-btn" id="lenses-btn" title="Lenses (patterns & biases)">
+                            <i class="fas fa-glasses"></i> Lenses
+                            <span class="filter-count hidden" id="lens-indicator">0</span>
                         </button>
                     </div>
                 </div>
@@ -512,36 +512,69 @@
             </div>
         </div>
 
-        <!-- Meta Filter Modal -->
-        <div class="modal hidden" id="meta-filter-modal">
+        <!-- Lenses Modal -->
+        <div class="modal hidden" id="lenses-modal">
             <div class="modal-overlay"></div>
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2 class="modal-title">Meta Filter</h2>
-                    <button class="modal-close" id="meta-filter-close">
+                    <div class="snellen">
+                        <div class="snellen-line snellen-1">L</div>
+                        <div class="snellen-line snellen-2">EN</div>
+                        <div class="snellen-line snellen-3">SES</div>
+                    </div>
+                    <button class="modal-close" id="lenses-close">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" id="meta-filter-enabled">
-                            Enable Meta Filter
+                    <div class="lenses-grid">
+                        <label class="radio-card">
+                            <input type="radio" name="lens" value="pattern" />
+                            <span class="radio-visual">
+                                <i class="fas fa-bullseye"></i>
+                                <strong>Pattern</strong>
+                                <small>Top-fit AI/Crypto</small>
+                            </span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="lens" value="bias" />
+                            <span class="radio-visual">
+                                <i class="fas fa-balance-scale"></i>
+                                <strong>Bias</strong>
+                                <small>NYC/Onsite highlight</small>
+                            </span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="lens" value="platform" />
+                            <span class="radio-visual">
+                                <i class="fas fa-network-wired"></i>
+                                <strong>Platform</strong>
+                                <small>Greenhouse/Lever</small>
+                            </span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="lens" value="none" />
+                            <span class="radio-visual">
+                                <i class="fas fa-eye-slash"></i>
+                                <strong>None</strong>
+                                <small>Show all</small>
+                            </span>
                         </label>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Config (JSON)</label>
-                        <textarea class="form-control" id="meta-filter-json" rows="12" placeholder='{
-  "enabled": true,
-  "include": [{ "all": [ { "field": "jobDomain", "includes": "greenhouse.io" }, { "field": "fitScore", "gte": 8.5 } ] }],
-  "exclude": [{ "field": "location", "matches": "New York|NYC" }]
+                    <div class="form-group" id="lens-custom-wrap">
+                        <label class="form-label">Custom Lens (JSON)</label>
+                        <textarea class="form-control" id="lens-custom-json" rows="10" placeholder='{
+  "name": "Custom",
+  "mode": "filter",
+  "include": [{ "all": [ { "field": "fitScore", "gte": 8.5 } ] }],
+  "exclude": []
 }'></textarea>
                         <small>Fields: company, roleTitle, jobUrl, jobDomain, tags, location, status, fitScore, vibe, salary</small>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn--outline" id="meta-filter-cancel">Cancel</button>
-                    <button class="btn btn--primary" id="meta-filter-save">Save</button>
+                    <button class="btn btn--outline" id="lenses-cancel">Cancel</button>
+                    <button class="btn btn--primary" id="lenses-apply">Apply</button>
                 </div>
             </div>
         </div>
