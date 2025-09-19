@@ -1271,7 +1271,7 @@ function renderDiscoverView() {
   if (btnNo) btnNo.onclick = () => handleDiscoverLabel(0, job);
   if (btnSkip) btnSkip.onclick = () => handleDiscoverLabel(null, job);
   const btnUndo = document.getElementById('discover-undo');
-  if (btnUndo) btnUndo.onclick = () => undoDiscover();
+  if (btnUndo) btnUndo.onclick = function() { try { undoDiscover(); } catch (e) { console.error(e); } };
 }
 
 function renderReasonChips(containerId, opts, selectedSet) {
