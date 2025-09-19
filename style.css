@@ -1180,6 +1180,7 @@ tr.lens-hit { border-left: 4px solid var(--color-primary); }
 .discover-card .meta { display: flex; gap: 12px; color: var(--color-text-secondary); font-size: var(--font-size-sm); }
 .discover-card .link a { color: var(--color-primary); text-decoration: none; }
 .discover-card .link a:hover { text-decoration: underline; }
+.discover-card .badge { display: inline-block; padding: 2px 6px; font-size: 11px; border-radius: 999px; background: var(--color-bg-1); color: var(--color-primary); }
 .discover-reasons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
 .reasons-title { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-bottom: 6px; }
 .reasons-chips { display: flex; flex-wrap: wrap; gap: 8px; }

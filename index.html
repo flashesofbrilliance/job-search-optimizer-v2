@@ -377,8 +377,27 @@
                 <!-- Discover View -->
                 <div class="view-content" id="discover-view">
                     <div class="discover-wrap">
+                        <div class="discover-controls" style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+                            <label class="form-label" style="margin:0; font-size:12px; color: var(--color-text-secondary);">Explore</label>
+                            <input type="range" id="discover-explore" min="0" max="50" step="5" value="10" style="width:160px;">
+                            <span id="discover-explore-label" style="font-size:12px; color: var(--color-text-secondary);">10%</span>
+                            <span style="margin-left:16px; font-size:12px; color: var(--color-text-secondary);">Auto‑add</span>
+                            <label class="form-label" style="display:flex; align-items:center; gap:6px; margin:0;">
+                                <input type="checkbox" id="discover-auto-accept" checked>
+                                <span class="form-label" style="font-size:12px;">if Fit ≥</span>
+                            </label>
+                            <input type="number" id="discover-fit-min" class="form-control" value="8.0" step="0.1" min="0" max="10" style="width:72px;">
+                            <div style="margin-left:auto; display:flex; gap:12px; align-items:center;">
+                                <span id="discover-streak" style="font-size:12px; color: var(--color-text-secondary);">Streak 0</span>
+                                <span id="discover-progress" style="font-size:12px; color: var(--color-text-secondary);">0/0</span>
+                            </div>
+                        </div>
                         <div class="discover-card" id="discover-card">
                             <!-- Populated by JS: company, title, link, tags -->
+                        </div>
+                        <div id="discover-suggest" class="discover-suggest" style="display:none; border:1px dashed var(--color-card-border); border-radius: var(--radius-base); padding:8px; margin:8px 0; font-size:12px;">
+                            <strong>Suggestion:</strong> <span id="discover-suggest-text"></span>
+                            <button class="btn btn--sm btn--primary" id="discover-apply-suggest" style="margin-left:8px;">Apply Suggested Lens</button>
                         </div>
                         <div class="discover-reasons">
                             <div class="reasons-block">

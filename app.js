@@ -291,6 +291,14 @@ const discoveryHistory = [];
 // Analytics settings
 let segmentMinN = 5; // default minimum sample size for segments
 
+// Discover settings
+let discoverExplorePct = 10; // % novelty (0-50)
+let discoverAutoAccept = true;
+let discoverFitMin = 8.0;
+let discoverStreak = 0;
+let discoverCount = 0;
+const discoverTotal = 0;
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
   initializeApp();
@@ -302,6 +310,7 @@ function initializeApp() {
   loadLensStateFromStorage();
   loadKanbanSortFromStorage();
   loadAnalyticsSettingsFromStorage();
+  loadDiscoverSettingsFromStorage();
   
   // Initialize filtered jobs
   filteredJobs = jobsData.filter(job => !job.isArchived);
@@ -316,6 +325,7 @@ function initializeApp() {
   updateLensIndicator();
   updateKanbanSortUI();
   bindAnalyticsControls();
+  bindDiscoverControls();
   
   // Initialize master activity log
   initializeMasterActivityLog();
@@ -449,6 +459,56 @@ function loadAnalyticsSettingsFromStorage() {
     const s = JSON.parse(localStorage.getItem('analyticsSettings') || '{}');
     if (s && typeof s.segmentMinN === 'number') segmentMinN = s.segmentMinN;
   } catch (e) { /* noop */ }
+}
+
+function bindDiscoverControls() {
+  const slider = document.getElementById('discover-explore');
+  const label = document.getElementById('discover-explore-label');
+  if (slider && label) {
+    slider.value = String(discoverExplorePct);
+    label.textContent = `${discoverExplorePct}%`;
+    slider.addEventListener('input', () => {
+      discoverExplorePct = parseInt(slider.value) || 0;
+      label.textContent = `${discoverExplorePct}%`;
+      saveDiscoverSettingsToStorage();
+    });
+  }
+  const chk = document.getElementById('discover-auto-accept');
+  const fitMin = document.getElementById('discover-fit-min');
+  if (chk) {
+    chk.checked = !!discoverAutoAccept;
+    chk.addEventListener('change', () => { discoverAutoAccept = chk.checked; saveDiscoverSettingsToStorage(); });
+  }
+  if (fitMin) {
+    fitMin.value = String(discoverFitMin);
+    fitMin.addEventListener('change', () => {
+      const v = parseFloat(fitMin.value);
+      discoverFitMin = isNaN(v) ? 8.0 : Math.max(0, Math.min(10, v));
+      saveDiscoverSettingsToStorage();
+    });
+  }
+  updateDiscoverHUD();
+}
+
+function updateDiscoverHUD() {
+  const streak = document.getElementById('discover-streak');
+  const prog = document.getElementById('discover-progress');
+  if (streak) streak.textContent = `Streak ${discoverStreak}`;
+  if (prog) prog.textContent = `${discoverCount}/${discoverTotal}`;
+}
+
+function saveDiscoverSettingsToStorage() {
+  try { localStorage.setItem('discoverSettings', JSON.stringify({ discoverExplorePct, discoverAutoAccept, discoverFitMin })); } catch (e) {}
+}
+function loadDiscoverSettingsFromStorage() {
+  try {
+    const s = JSON.parse(localStorage.getItem('discoverSettings') || '{}');
+    if (s) {
+      if (typeof s.discoverExplorePct === 'number') discoverExplorePct = s.discoverExplorePct;
+      if (typeof s.discoverAutoAccept === 'boolean') discoverAutoAccept = s.discoverAutoAccept;
+      if (typeof s.discoverFitMin === 'number') discoverFitMin = s.discoverFitMin;
+    }
+  } catch (e) {}
 }
 
 function bindKanbanSort() {
@@ -1297,7 +1357,8 @@ function renderDiscoverView() {
   const statusEl = document.getElementById('discover-status');
   if (!cardEl) return;
   if (discoveryQueue.length === 0) buildDiscoveryQueue();
-  const job = discoveryQueue[discoveryIndex];
+  const pick = pickDiscoverJob();
+  const job = pick?.job;
   if (!job) {
     cardEl.innerHTML = '<div class="company">All caught up</div><div class="meta">No more roles in Not Started.</div>';
     if (statusEl) statusEl.textContent = '';
@@ -1305,7 +1366,7 @@ function renderDiscoverView() {
   }
   const domain = getJobDomain(job.jobUrl);
   cardEl.innerHTML = `
-    <div class="company">${job.company} • <span class="meta">${domain}</span></div>
+    <div class="company">${job.company} • <span class="meta">${domain}</span> ${pick?.novel ? '<span class="badge">Novel</span>' : ''}</div>
     <div class="title">${job.roleTitle}</div>
     <div class="meta">${job.location || ''} • Fit ${job.fitScore}</div>
     <div class="link"><a href="${normalizeUrl(job.jobUrl)}" target="_blank" rel="noopener">Open posting</a></div>
@@ -1319,11 +1380,13 @@ function renderDiscoverView() {
   const btnYes = document.getElementById('discover-yes');
   const btnNo = document.getElementById('discover-no');
   const btnSkip = document.getElementById('discover-skip');
-  if (btnYes) btnYes.onclick = () => handleDiscoverLabel(1, job);
-  if (btnNo) btnNo.onclick = () => handleDiscoverLabel(0, job);
-  if (btnSkip) btnSkip.onclick = () => handleDiscoverLabel(null, job);
+  if (btnYes) btnYes.onclick = () => handleDiscoverLabel(1, job, pick?.index, pick?.novel);
+  if (btnNo) btnNo.onclick = () => handleDiscoverLabel(0, job, pick?.index, pick?.novel);
+  if (btnSkip) btnSkip.onclick = () => handleDiscoverLabel(null, job, pick?.index, pick?.novel);
   const btnUndo = document.getElementById('discover-undo');
   if (btnUndo) btnUndo.onclick = function() { try { undoDiscover(); } catch (e) { console.error(e); } };
+
+  renderDiscoverSuggestion();
 }
 
 function renderReasonChips(containerId, opts, selectedSet) {
@@ -1343,7 +1406,7 @@ function renderReasonChips(containerId, opts, selectedSet) {
   });
 }
 
-function handleDiscoverLabel(label, job) {
+function handleDiscoverLabel(label, job, idx, novel) {
   // capture reasons
   const reasons = label === 1 ? Array.from(selectedYesReasons) : label === 0 ? Array.from(selectedNoReasons) : [];
   // feedback event
@@ -1362,11 +1425,87 @@ function handleDiscoverLabel(label, job) {
   // advance
   selectedYesReasons.clear();
   selectedNoReasons.clear();
-  if (label !== null) discoveryQueue.splice(discoveryIndex, 1); else discoveryIndex = (discoveryIndex + 1) % discoveryQueue.length;
+  if (typeof idx === 'number') {
+    if (label !== null) discoveryQueue.splice(idx, 1); // consumed
+  }
+  if (label === 1) {
+    // acceptance gate
+    if (discoverAutoAccept && (parseFloat(job.fitScore)||0) >= discoverFitMin) {
+      discoverStreak += 1;
+      showToast('Added to backlog ✓', 'success');
+    } else {
+      job.needsReview = true;
+      discoverStreak = 0;
+      showToast('Queued for review', 'info');
+    }
+  } else if (label === 0) {
+    discoverStreak = 0;
+  }
+  discoverCount += 1; updateDiscoverHUD();
   saveDataToStorage();
   renderDashboard();
   applyAllFilters();
   renderDiscoverView();
+}
+
+function pickDiscoverJob() {
+  if (discoveryQueue.length === 0) return null;
+  const explore = Math.random() < (discoverExplorePct/100);
+  let idx = 0;
+  if (explore) {
+    idx = Math.floor(Math.random() * discoveryQueue.length);
+  } else {
+    idx = 0; // highest fit first (sorted)
+  }
+  return { job: discoveryQueue[idx], index: idx, novel: explore };
+}
+
+function renderDiscoverSuggestion() {
+  const wrap = document.getElementById('discover-suggest');
+  const text = document.getElementById('discover-suggest-text');
+  const btn = document.getElementById('discover-apply-suggest');
+  if (!wrap || !text || !btn) return;
+  const stats = computeSegmentStatsFromFeedback();
+  if (!stats || stats.length < 2) { wrap.style.display='none'; return; }
+  const a = stats[0], b = stats[1];
+  const aBetter = a.ci.lo > b.ci.hi && a.n >= (segmentMinN||5) && b.n >= (segmentMinN||5);
+  if (!aBetter) { wrap.style.display='none'; return; }
+  const sugg = lensFromSegment(a.name);
+  if (!sugg) { wrap.style.display='none'; return; }
+  text.textContent = `${a.name} is outperforming (99% CI). Apply a focused lens?`;
+  btn.onclick = () => { applySuggestedLens(sugg); wrap.style.display='none'; };
+  wrap.style.display='block';
+}
+
+function lensFromSegment(name) {
+  // name like Tag:Crypto, Domain:greenhouse.io, Level:Director, Policy:Remote
+  if (!name || typeof name !== 'string') return null;
+  if (name.startsWith('Tag:')) {
+    const t = name.slice(4);
+    return { name: `Pattern: ${t}`, mode:'filter', include:[{ all:[ { field:'tags', includesAny:[t] }, { field:'fitScore', gte: discoverFitMin } ] }], exclude:[{ field:'status', equals:'rejected' }] };
+  }
+  if (name.startsWith('Domain:')) {
+    const d = name.slice(7);
+    return { name:`Platform: ${d}`, mode:'filter', include:[{ any:[ { field:'jobDomain', includes:d } ] }], exclude:[] };
+  }
+  if (name.startsWith('Level:')) {
+    const l = name.slice(6);
+    return { name:`Level: ${l}`, mode:'filter', include:[{ all:[ { field:'roleTitle', matches:`^${l}` }, { field:'fitScore', gte: discoverFitMin } ] }], exclude:[] };
+  }
+  if (name.startsWith('Policy:Remote')) {
+    return { name:'Policy: Remote', mode:'filter', include:[{ any:[ { field:'location', matches:'Remote' } ] }], exclude:[] };
+  }
+  return null;
+}
+
+function applySuggestedLens(lens) {
+  customLens = { id:'custom', ...lens };
+  activeLensId = 'custom';
+  localStorage.setItem('lensActive', activeLensId);
+  localStorage.setItem('lensCustom', JSON.stringify(customLens));
+  updateLensIndicator();
+  applyAllFilters();
+  showToast('Applied suggested lens', 'success');
 }
 
 function undoDiscover() {
