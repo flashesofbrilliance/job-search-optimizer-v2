@@ -276,6 +276,9 @@ let activeLensId = 'none';
 let customLens = { id: 'custom', name: 'Custom', mode: 'filter', include: [], exclude: [] };
 let promptLens = null; // saved-from-prompt lens (optional)
 
+// Kanban sort state
+let kanbanSort = { key: 'fit', dir: 'desc' }; // keys: fit|company|applied; dir: asc|desc
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
   initializeApp();
@@ -285,6 +288,7 @@ function initializeApp() {
   // Load data from localStorage if available
   loadDataFromStorage();
   loadLensStateFromStorage();
+  loadKanbanSortFromStorage();
   
   // Initialize filtered jobs
   filteredJobs = jobsData.filter(job => !job.isArchived);
@@ -297,6 +301,7 @@ function initializeApp() {
   renderGoalsSection();
   renderCurrentView();
   updateLensIndicator();
+  updateKanbanSortUI();
   
   // Initialize master activity log
   initializeMasterActivityLog();
@@ -388,6 +393,43 @@ function bindEventListeners() {
   
   // Table sorting
   bindTableSorting();
+
+  // Kanban sort control
+  bindKanbanSort();
+}
+
+function bindKanbanSort() {
+  const sel = document.getElementById('kanban-sort-select');
+  if (!sel) return;
+  sel.value = `${kanbanSort.key}-${kanbanSort.dir}`;
+  sel.addEventListener('change', (e) => {
+    const v = e.target.value || 'fit-desc';
+    const [key, dir] = v.split('-');
+    kanbanSort = { key, dir };
+    saveKanbanSortToStorage();
+    if (currentView === 'kanban') renderKanbanView();
+  });
+}
+
+function updateKanbanSortUI() {
+  const wrap = document.getElementById('kanban-sort-wrap');
+  const sel = document.getElementById('kanban-sort-select');
+  if (wrap) wrap.style.display = currentView === 'kanban' ? 'flex' : 'none';
+  if (sel) sel.value = `${kanbanSort.key}-${kanbanSort.dir}`;
+}
+
+function saveKanbanSortToStorage() {
+  try { localStorage.setItem('kanbanSort', JSON.stringify(kanbanSort)); } catch (_) {}
+}
+
+function loadKanbanSortFromStorage() {
+  try {
+    const s = localStorage.getItem('kanbanSort');
+    if (s) {
+      const parsed = JSON.parse(s);
+      if (parsed && parsed.key && parsed.dir) kanbanSort = parsed;
+    }
+  } catch (_) {}
 }
 
 function bindHeaderActions() {
@@ -1145,6 +1187,7 @@ function switchView(view) {
   // Clear selection when switching views
   selectedJobs.clear();
   updateBulkActions();
+  updateKanbanSortUI();
 }
 
 function renderCurrentView() {
@@ -1295,7 +1338,7 @@ function renderKanbanView() {
     
     const jobs = filteredJobs
       .filter(job => job.status === status)
-      .sort((a, b) => (parseFloat(b.fitScore) || 0) - (parseFloat(a.fitScore) || 0));
+      .sort(compareKanban);
     countEl.textContent = jobs.length;
     
     column.innerHTML = '';
@@ -1306,6 +1349,23 @@ function renderKanbanView() {
     
     setupColumnDropZone(column, status);
   });
+}
+
+function compareKanban(a, b) {
+  const { key, dir } = kanbanSort;
+  let av, bv;
+  if (key === 'fit') {
+    av = parseFloat(a.fitScore) || 0; bv = parseFloat(b.fitScore) || 0;
+  } else if (key === 'company') {
+    av = (a.company || '').toLowerCase(); bv = (b.company || '').toLowerCase();
+  } else if (key === 'applied') {
+    av = a.appliedDate ? new Date(a.appliedDate).getTime() : 0;
+    bv = b.appliedDate ? new Date(b.appliedDate).getTime() : 0;
+  } else {
+    av = 0; bv = 0;
+  }
+  const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+  return dir === 'asc' ? cmp : -cmp;
 }
 
 function createKanbanCard(job) {
