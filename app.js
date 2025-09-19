@@ -1129,6 +1129,9 @@ function createTableRow(job) {
     <td class="role-cell">
       <div class="role-title">${job.roleTitle}</div>
     </td>
+    <td class="link-cell">
+      ${renderJobLink(job.jobUrl)}
+    </td>
     <td>
       <span class="status-badge ${job.status}">${formatStatus(job.status)}</span>
     </td>
@@ -1155,6 +1158,26 @@ function createTableRow(job) {
   checkbox.addEventListener('change', () => toggleJobSelection(job.id));
   
   return row;
+}
+
+function renderJobLink(url) {
+  if (!url) return '-';
+  try {
+    const u = new URL(normalizeUrl(url));
+    const domain = u.hostname.replace(/^www\./, '');
+    return `<a href="${u.href}" target="_blank" rel="noopener" title="Open job posting">${domain} <i class="fas fa-external-link-alt" aria-hidden="true"></i></a>`;
+  } catch (_) {
+    const safe = (url || '').toString().replace(/"/g, '&quot;');
+    return `<a href="${safe}" target="_blank" rel="noopener"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>`;
+  }
+}
+
+function normalizeUrl(url) {
+  if (!url) return '';
+  const s = url.trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  // Prepend https by default for bare domains/paths
+  return `https://${s}`;
 }
 
 function handleSort(sortKey) {
@@ -1487,7 +1510,7 @@ function saveJobChanges() {
     ...originalJob,
     company: document.getElementById('edit-company')?.value || originalJob.company,
     roleTitle: document.getElementById('edit-role')?.value || originalJob.roleTitle,
-    jobUrl: document.getElementById('edit-job-url')?.value || originalJob.jobUrl,
+    jobUrl: normalizeUrl(document.getElementById('edit-job-url')?.value || originalJob.jobUrl),
     location: document.getElementById('edit-location')?.value || originalJob.location,
     status: document.getElementById('edit-status')?.value || originalJob.status,
     salary: document.getElementById('edit-salary')?.value || originalJob.salary,
